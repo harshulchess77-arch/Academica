@@ -17,11 +17,36 @@
     " />
 
     <title>Academica — Intelligent Design & Educational Hub</title>
+    <style>
+      #demo-banner {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(90deg, #FFC107, #FF9800);
+        color: #1A237E;
+        text-align: center;
+        padding: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        z-index: 9999;
+        display: none;
+      }
+    </style>
   </head>
   <body>
+    <div id="demo-banner">🎨 Demo Mode - UI Preview (No Backend Connection)</div>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <script>
+      // Show demo banner if using demo credentials
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        const demoBanner = document.getElementById('demo-banner')
+        if (demoBanner) {
+          demoBanner.style.display = 'block'
+        }
+      }
+
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('/service-worker.js')

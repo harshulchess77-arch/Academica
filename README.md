@@ -10,12 +10,14 @@ Academica is a world-class, globally compliant, AI-powered gamified learning eco
 # Install dependencies
 npm install
 
-# Set up environment variables
-cp .env.example .env
-# Edit .env with your Supabase and Gemini API keys
-
-# Run development server
+# Run development server (demo mode - no backend required)
 npm run dev
+
+# For production with real backend:
+# 1. Create a .env file with your Supabase and Gemini API keys
+# cp .env.example .env
+# 2. Edit .env with your credentials
+# 3. Run: npm run dev
 
 # Build for production
 npm run build
@@ -23,6 +25,9 @@ npm run build
 # Preview production build
 npm run preview
 ```
+
+### Demo Mode
+The application runs in **demo mode** by default, which allows you to explore the UI without setting up Supabase or Gemini. To connect to a real backend, update the `.env` file with your credentials.
 
 ## 🎨 Brand Assets
 

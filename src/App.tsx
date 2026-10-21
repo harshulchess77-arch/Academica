@@ -55,6 +55,12 @@ function App() {
   const { setSession, refreshProfile } = authStore()
 
   useEffect(() => {
+    // Skip auth checks in demo mode
+    if ((supabase as any).isDemoMode) {
+      console.log('Running in demo mode - auth checks skipped')
+      return
+    }
+
     // Check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session)
