@@ -20,9 +20,32 @@ npm run dev
 # Build for production
 npm run build
 
-# Run tests
-npm test
-npm run test:e2e
+# Preview production build
+npm run preview
+```
+
+## 🎨 Brand Assets
+
+The Academica logo is located at `public/Academica_Logo.png` and is used throughout the application:
+
+- **Favicon**: Configured in `index.html`
+- **PWA Icons**: Configured in `public/manifest.json`
+- **Logo Component**: `<LogoMark />` component supports multiple variants (horizontal, stacked, icon-only)
+- **Logo Usage**: The logo is automatically used in the Navbar, Footer, and Hero sections
+
+### Logo Variants
+```tsx
+// Horizontal lockup (default)
+<LogoMark variant="horizontal" />
+
+// Stacked version
+<LogoMark variant="stacked" />
+
+// Icon only
+<LogoMark variant="icon-only" size={40} />
+
+// Use PNG image instead of SVG
+<LogoMark variant="horizontal" useImage={true} />
 ```
 
 ## 🏗️ Architecture

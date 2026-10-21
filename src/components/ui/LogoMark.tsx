@@ -2,12 +2,13 @@ import { cn } from '@/lib/utils'
 import { HTMLAttributes } from 'react'
 
 interface LogoMarkProps extends HTMLAttributes<HTMLDivElement> {
-  variant?: 'horizontal' | 'stacked' | 'icon-only' | 'full' | 'icon' | 'mono'
+  variant?: 'horizontal' | 'stacked' | 'icon-only' | 'full' | 'icon' | 'mono' | 'image'
   size?: number
   lightMode?: boolean
+  useImage?: boolean
 }
 
-export default function LogoMark({ variant = 'horizontal', size = 40, className, lightMode = false, ...props }: LogoMarkProps) {
+export default function LogoMark({ variant = 'horizontal', size = 40, className, lightMode = false, useImage = false, ...props }: LogoMarkProps) {
   // Reusable SVG Emblem: Open Book + Circuit Tree + Gradient Flame
   const EmblemSvg = (
     <div className="relative flex items-center justify-center filter drop-shadow-md">
@@ -81,6 +82,69 @@ export default function LogoMark({ variant = 'horizontal', size = 40, className,
 
   // Map old variants to new variants for backward compatibility
   const effectiveVariant = variant === 'full' ? 'horizontal' : variant === 'icon' ? 'icon-only' : variant
+
+  // Use PNG logo image if useImage is true
+  if (useImage) {
+    if (effectiveVariant === 'icon-only') {
+      return (
+        <div className={cn('inline-flex items-center', className)} {...props}>
+          <img
+            src="/Academica_Logo.png"
+            alt="Academica Logo"
+            className="flex-shrink-0"
+            style={{ width: size, height: size }}
+          />
+        </div>
+      );
+    }
+
+    if (effectiveVariant === 'stacked') {
+      return (
+        <div className={cn('flex flex-col items-center text-center p-3 select-none', className)} {...props}>
+          <img
+            src="/Academica_Logo.png"
+            alt="Academica Logo"
+            className="flex-shrink-0 mb-2"
+            style={{ width: size * 1.5, height: size * 1.5 }}
+          />
+          <span
+            className={cn('font-extrabold tracking-widest text-2xl uppercase font-jakarta', lightMode ? 'text-white' : 'text-[#1A237E]')}
+          >
+            ACADEMICA
+          </span>
+          <span
+            className={cn('text-xs mt-1 max-w-[200px] leading-tight font-medium', lightMode ? 'text-slate-300' : 'text-[#1A237E]/80')}
+          >
+            Intelligent Design Hub for AI & Brand Professionals
+          </span>
+        </div>
+      );
+    }
+
+    // Horizontal Lockup with image
+    return (
+      <div className={cn('flex items-center gap-3 select-none', className)} {...props}>
+        <img
+          src="/Academica_Logo.png"
+          alt="Academica Logo"
+          className="flex-shrink-0"
+          style={{ width: size, height: size }}
+        />
+        <div className="flex flex-col text-left">
+          <span
+            className={cn('font-black text-xl tracking-wider uppercase font-jakarta leading-none', lightMode ? 'text-white' : 'text-[#1A237E]')}
+          >
+            ACADEMICA
+          </span>
+          <span
+            className={cn('text-[9.5px] uppercase tracking-widest font-semibold mt-1', lightMode ? 'text-teal-300' : 'text-[#6200EA]')}
+          >
+            Intelligent Learning Hub
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   if (effectiveVariant === 'icon-only') {
     return <div className={cn('inline-flex items-center', className)} {...props}>{EmblemSvg}</div>;
