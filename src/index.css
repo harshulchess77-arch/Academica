@@ -1,0 +1,187 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background-canvas: #F8FAFC;
+    --surface-white: #FFFFFF;
+    --surface-secondary: #F0F0F0;
+  }
+
+  body {
+    @apply bg-canvas text-cobalt-900 font-sans antialiased;
+  }
+
+  /* BACKDROP-FILTER BUDGET RULE: Never nest more than 2 layers of backdrop-blur on screen simultaneously */
+  /* Modals/drawers use glass material; base page backgrounds do NOT (to avoid GPU overdraw) */
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-cloud-grey-100 dark:bg-white/5;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-cloud-grey-300 rounded-full dark:bg-white/20;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-cloud-grey-400 dark:bg-white/30;
+  }
+}
+
+/* Custom animations from external UI/UX */
+@keyframes spinSlow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes spinReverseSlow {
+  from {
+    transform: rotate(360deg);
+  }
+  to {
+    transform: rotate(0deg);
+  }
+}
+
+@keyframes pulseGentle {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.025);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes scaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.animate-spin-slow {
+  animation: spinSlow 34s linear infinite;
+}
+
+.animate-spin-reverse-slow {
+  animation: spinReverseSlow 48s linear infinite;
+}
+
+.animate-pulse-gentle {
+  animation: pulseGentle 3s ease-in-out infinite;
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.25s ease-out forwards;
+}
+
+.animate-scaleUp {
+  animation: scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slideUp {
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@layer components {
+  .glass-panel {
+    @apply bg-white/60 backdrop-blur-xl border border-white/40 shadow-card;
+  }
+
+  .glass-panel-dark {
+    @apply bg-cobalt-900/70 backdrop-blur-xl border border-white/10;
+  }
+
+  /* Animation delays for staggered effects */
+  .animation-delay-300 {
+    animation-delay: 300ms;
+  }
+
+  .animation-delay-600 {
+    animation-delay: 600ms;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+/* Accessibility: High contrast mode support */
+@media (prefers-contrast: high) {
+  :root {
+    --surface-white: #FFFFFF;
+    --surface-secondary: #E0E0E0;
+  }
+}
+
+/* Accessibility: Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Dyslexic-friendly font */
+.dyslexic-font {
+  font-family: 'OpenDyslexic', 'Comic Sans MS', sans-serif;
+}
+
+/* High contrast mode */
+.high-contrast {
+  filter: contrast(1.2);
+}
+
+/* Larger click targets for accessibility */
+.larger-click-targets button,
+.larger-click-targets a,
+.larger-click-targets input {
+  @apply min-h-[44px] min-w-[44px];
+}
+
+/* Always show focus ring for accessibility */
+.always-show-focus *:focus-visible {
+  @apply outline-none ring-2 ring-cobalt-600 ring-offset-2 dark:ring-cobalt-400;
+}

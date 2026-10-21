@@ -1,104 +1,99 @@
--- Seed data for Academica
--- This file populates the database with sample data for development and testing
-
--- Insert skill nodes (30 nodes across 4 subjects)
-INSERT INTO public.skill_nodes (subject, branch, level, title, description, required_xp, position_x, position_y) VALUES
--- Math
-('math', 'algebra', 1, 'Variables', 'Learn to use letters to represent numbers', 0, 100, 100),
-('math', 'algebra', 2, 'Equations', 'Solve for unknown values', 100, 200, 100),
-('math', 'algebra', 3, 'Inequalities', 'Compare values with greater than and less than', 200, 300, 100),
-('math', 'geometry', 1, 'Shapes', 'Identify basic geometric shapes', 0, 100, 200),
-('math', 'geometry', 2, 'Angles', 'Measure and classify angles', 150, 200, 200),
-('math', 'geometry', 3, 'Area', 'Calculate area of rectangles and triangles', 300, 300, 200),
-('math', 'calculus', 1, 'Limits', 'Introduction to limits', 500, 400, 100),
-('math', 'calculus', 2, 'Derivatives', 'Rate of change', 600, 500, 100),
+-- Skill nodes (30 across 4 subjects)
+INSERT INTO skill_nodes (subject, title, description, parent_id, order_index, xp_reward) VALUES
+-- Mathematics
+('Mathematics', 'Numbers & Operations', 'Understanding basic number concepts', NULL, 1, 10),
+('Mathematics', 'Addition & Subtraction', 'Master addition and subtraction', NULL, 2, 15),
+('Mathematics', 'Multiplication', 'Learn multiplication tables', NULL, 3, 20),
+('Mathematics', 'Division', 'Understand division basics', NULL, 4, 20),
+('Mathematics', 'Fractions', 'Introduction to fractions', NULL, 5, 25),
+('Mathematics', 'Decimals', 'Working with decimal numbers', NULL, 6, 25),
+('Mathematics', 'Percentages', 'Understanding percentages', NULL, 7, 30),
+('Mathematics', 'Algebra Basics', 'Introduction to variables', NULL, 8, 35),
 -- Science
-('science', 'physics', 1, 'Motion', 'Speed, velocity, and acceleration', 0, 100, 300),
-('science', 'physics', 2, 'Forces', 'Newton''s laws of motion', 200, 200, 300),
-('science', 'physics', 3, 'Energy', 'Kinetic and potential energy', 400, 300, 300),
-('science', 'chemistry', 1, 'Atoms', 'Structure of atoms', 0, 100, 400),
-('science', 'chemistry', 2, 'Elements', 'Periodic table basics', 150, 200, 400),
-('science', 'chemistry', 3, 'Reactions', 'Chemical bonding', 300, 300, 400),
-('science', 'biology', 1, 'Cells', 'Plant and animal cells', 0, 100, 500),
-('science', 'biology', 2, 'Genetics', 'DNA and heredity', 200, 200, 500),
-('science', 'biology', 3, 'Ecosystems', 'Food chains and webs', 400, 300, 500),
+('Science', 'Scientific Method', 'How science works', NULL, 1, 10),
+('Science', 'Matter & Atoms', 'Understanding matter', NULL, 2, 15),
+('Science', 'Forces & Motion', 'Physics fundamentals', NULL, 3, 20),
+('Science', 'Energy Types', 'Different forms of energy', NULL, 4, 20),
+('Science', 'Ecosystems', 'How nature works together', NULL, 5, 25),
+('Science', 'Cells & Life', 'Biology basics', NULL, 6, 25),
+('Science', 'Genetics', 'Introduction to heredity', NULL, 7, 30),
+('Science', 'Chemical Reactions', 'Basics of chemistry', NULL, 8, 35),
 -- English
-('english', 'grammar', 1, 'Nouns', 'People, places, and things', 0, 100, 600),
-('english', 'grammar', 2, 'Verbs', 'Action words', 100, 200, 600),
-('english', 'grammar', 3, 'Adjectives', 'Describing words', 200, 300, 600),
-('english', 'writing', 1, 'Sentences', 'Structure and punctuation', 150, 200, 700),
-('english', 'writing', 2, 'Paragraphs', 'Topic sentences and supporting details', 300, 300, 700),
-('english', 'writing', 3, 'Essays', 'Introduction, body, conclusion', 450, 400, 700),
-('english', 'literature', 1, 'Fiction', 'Stories and novels', 100, 200, 800),
-('english', 'literature', 2, 'Poetry', 'Rhyme and meter', 250, 300, 800),
-('english', 'literature', 3, 'Drama', 'Plays and scripts', 400, 400, 800),
--- Computer Science
-('computer-science', 'programming', 1, 'Variables', 'Storing data', 0, 100, 900),
-('computer-science', 'programming', 2, 'Loops', 'Repeating actions', 150, 200, 900),
-('computer-science', 'programming', 3, 'Functions', 'Reusable code blocks', 300, 300, 900),
-('computer-science', 'algorithms', 1, 'Sorting', 'Organizing data', 200, 400, 900),
-('computer-science', 'algorithms', 2, 'Searching', 'Finding data', 350, 500, 900),
-('computer-science', 'algorithms', 3, 'Recursion', 'Functions calling themselves', 500, 600, 900);
+('English', 'Grammar Basics', 'Parts of speech', NULL, 1, 10),
+('English', 'Sentence Structure', 'Building sentences', NULL, 2, 15),
+('English', 'Vocabulary Building', 'Expanding word knowledge', NULL, 3, 20),
+('English', 'Reading Comprehension', 'Understanding texts', NULL, 4, 20),
+('English', 'Writing Essays', 'Essay structure', NULL, 5, 25),
+('English', 'Creative Writing', 'Storytelling techniques', NULL, 6, 25),
+('English', 'Poetry Analysis', 'Understanding poems', NULL, 7, 30),
+('English', 'Public Speaking', 'Presentation skills', NULL, 8, 35),
+-- History
+('History', 'Ancient Civilizations', 'Early human societies', NULL, 1, 10),
+('History', 'World Wars', 'Global conflicts', NULL, 2, 15),
+('History', 'Democracy', 'Government systems', NULL, 3, 20),
+('History', 'Economics', 'How economies work', NULL, 4, 20),
+('History', 'Geography', 'World geography', NULL, 5, 25),
+('History', 'Cultural Studies', 'Understanding cultures', NULL, 6, 25);
 
--- Insert badges (10 badges)
-INSERT INTO public.badges (name, description, icon, tier, required_xp) VALUES
-('First Steps', 'Complete your first skill node', '🎯', 'bronze', 0),
-('Week Warrior', 'Maintain a 7-day streak', '🔥', 'bronze', 100),
-('Knowledge Seeker', 'Unlock 10 skill nodes', '📚', 'silver', 500),
-('Quiz Master', 'Score 100% on 5 quizzes', '🏆', 'silver', 1000),
-('Guild Member', 'Join your first guild', '👥', 'bronze', 0),
-('Journal Keeper', 'Write 10 journal entries', '📝', 'silver', 500),
-('Focus Champion', 'Complete 50 pomodoro sessions', '⏱️', 'gold', 2000),
-('AI Explorer', 'Use AI tutor 50 times', '🤖', 'silver', 1000),
-('Community Builder', 'Create a guild', '🏰', 'gold', 3000),
-('Master Scholar', 'Complete a full skill tree branch', '🎓', 'platinum', 5000);
+-- Guilds
+INSERT INTO guilds (name, description, subject, member_count) VALUES
+('Math Masters', 'A community for math enthusiasts', 'Mathematics', 0),
+('Science Explorers', 'Discover the wonders of science', 'Science', 0),
+('Book Club', 'Love reading? Join us!', 'English', 0),
+('History Buffs', 'Explore the past together', 'History', 0),
+('General Study Group', 'All subjects welcome', NULL, 0);
 
--- Insert vault items (12 items)
-INSERT INTO public.vault_items (name, description, item_type, cost_xp, rarity) VALUES
-('Golden Frame', 'A shiny gold avatar frame', 'avatar_frame', 500, 'rare'),
-('Amethyst Frame', 'Purple crystal frame', 'avatar_frame', 750, 'epic'),
-('Platinum Frame', 'Ultimate platinum frame', 'avatar_frame', 1000, 'legendary'),
-('Starry Night', 'Beautiful starry background', 'background', 300, 'common'),
-('Enchanted Forest', 'Magical forest background', 'background', 500, 'rare'),
-('Galaxy Nexus', 'Space galaxy background', 'background', 800, 'epic'),
-('Ocean Waves', 'Calming ocean background', 'background', 400, 'common'),
-('Sparkle Trail', 'Sparkling particle effect', 'effect', 400, 'rare'),
-('Rainbow Aura', 'Colorful rainbow effect', 'effect', 600, 'epic'),
-('Phoenix Flame', 'Fiery phoenix effect', 'effect', 900, 'legendary'),
-('Glow Pulse', 'Pulsing glow effect', 'effect', 300, 'common'),
-('Snow Flakes', 'Falling snow effect', 'effect', 350, 'common');
+-- Badges
+INSERT INTO badges (name, description, icon, requirement, xp_reward) VALUES
+('First Steps', 'Complete your first skill node', '🎯', 'Complete 1 skill node', 50),
+('Streak Starter', 'Maintain a 3-day streak', '🔥', '3-day streak', 100),
+('Math Wizard', 'Complete all Math skill nodes', '🧮', 'Complete Math tree', 500),
+('Science Star', 'Complete all Science skill nodes', '🔬', 'Complete Science tree', 500),
+('Grammar Guru', 'Complete all English skill nodes', '�', 'Complete English tree', 500),
+('Time Traveler', 'Complete all History skill nodes', '🏛️', 'Complete History tree', 500),
+('Quiz Champion', 'Score 100% on 5 quizzes', '🏆', '5 perfect quizzes', 200),
+('Journal Keeper', 'Write 10 journal entries', '📝', '10 journal entries', 150),
+('Guild Leader', 'Create a guild', '👑', 'Create guild', 300),
+('Focus Master', 'Complete 10 pomodoro sessions', '⏱️', '10 pomodoro sessions', 150);
 
--- Insert guilds (5 guilds)
-INSERT INTO public.guilds (name, description, focus_subject, member_count) VALUES
-('Math Wizards', 'For those who love numbers and equations', 'math', 150),
-('Science Explorers', 'Discover the wonders of the universe', 'science', 200),
-('Literary Society', 'Book lovers and writers unite', 'english', 120),
-('Code Crusaders', 'Programming enthusiasts', 'computer-science', 180),
-('Study Buddies', 'General study group for all subjects', NULL, 300);
+-- Vault items
+INSERT INTO vault_items (name, description, item_type, cost, icon, is_available) VALUES
+('Golden Avatar Frame', 'Shiny gold frame for your avatar', 'avatar', 500, '🌟', true),
+('Amethyst Theme', 'Beautiful purple theme', 'theme', 300, '💜', true),
+('Pro Title', 'Show off your expertise', 'title', 200, '🎓', true),
+('Diamond Badge Frame', 'Sparkling diamond frame', 'badge_frame', 400, '💎', true),
+('Teal Avatar Frame', 'Cool teal frame for your avatar', 'avatar', 300, '🌊', true),
+('Scholar Title', 'Academic excellence title', 'title', 150, '📖', true),
+('Night Theme', 'Dark elegant theme', 'theme', 250, '🌙', true),
+('Ruby Badge Frame', 'Rich red frame', 'badge_frame', 350, '❤️', true),
+('Explorer Avatar', 'Adventure-themed avatar', 'avatar', 450, '🗺️', true),
+('Innovator Title', 'Creative problem solver', 'title', 250, '💡', true),
+('Sunset Theme', 'Warm sunset colors', 'theme', 200, '🌅', true),
+('Emerald Badge Frame', 'Green elegant frame', 'badge_frame', 300, '💚', true);
 
--- Insert organizations (2 sample organizations)
-INSERT INTO public.organizations (name, type, admin_id, is_active) VALUES
-('Lincoln High School', 'school', (SELECT id FROM public.profiles LIMIT 1), true),
-('EdTech District', 'district', (SELECT id FROM public.profiles LIMIT 1), true);
+-- Organizations
+INSERT INTO organizations (name, domain, tier, max_students) VALUES
+('Springfield High School', 'springfield.edu', 'school', 1000),
+('Lincoln Academy', 'lincoln.edu', 'school', 500);
 
--- Insert classrooms (sample classrooms for the organizations)
-INSERT INTO public.classrooms (organization_id, name, grade_level, subject, teacher_id) VALUES
-((SELECT id FROM public.organizations WHERE name = 'Lincoln High School'), 'Algebra 101', '9', 'math', (SELECT id FROM public.profiles LIMIT 1)),
-((SELECT id FROM public.organizations WHERE name = 'Lincoln High School'), 'Physics Lab', '10', 'science', (SELECT id FROM public.profiles LIMIT 1)),
-((SELECT id FROM public.organizations WHERE name = 'EdTech District'), 'AP Computer Science', '11', 'computer-science', (SELECT id FROM public.profiles LIMIT 1));
+-- Classrooms
+INSERT INTO classrooms (organization_id, teacher_id, name, subject, grade) VALUES
+((SELECT id FROM organizations WHERE name = 'Springfield High School'), NULL, 'Algebra 101', 'Mathematics', '9'),
+((SELECT id FROM organizations WHERE name = 'Springfield High School'), NULL, 'Biology Basics', 'Science', '10'),
+((SELECT id FROM organizations WHERE name = 'Lincoln Academy'), NULL, 'English Literature', 'English', '11'),
+((SELECT id FROM organizations WHERE name = 'Lincoln Academy'), NULL, 'World History', 'History', '12'),
+((SELECT id FROM organizations WHERE name = 'Springfield High School'), NULL, 'Physics Fundamentals', 'Science', '11');
 
--- Insert sample assignments (5 assignments)
-INSERT INTO public.assignments (teacher_id, classroom_id, title, type, due_date) VALUES
-((SELECT id FROM public.profiles LIMIT 1), (SELECT id FROM public.classrooms LIMIT 1), 'Algebra Quiz 1', 'quiz', NOW() + INTERVAL '7 days'),
-((SELECT id FROM public.profiles LIMIT 1), (SELECT id FROM public.classrooms LIMIT 1), 'Geometry Flashcards', 'flashcard_deck', NOW() + INTERVAL '14 days'),
-((SELECT id FROM public.profiles LIMIT 1), (SELECT id FROM public.classrooms LIMIT 1), 'Physics Test', 'quiz', NOW() + INTERVAL '10 days'),
-((SELECT id FROM public.profiles LIMIT 1), (SELECT id FROM public.classrooms LIMIT 1), 'Programming Basics', 'flashcard_deck', NOW() + INTERVAL '21 days'),
-((SELECT id FROM public.profiles LIMIT 1), (SELECT id FROM public.classrooms LIMIT 1), 'Final Exam', 'quiz', NOW() + INTERVAL '30 days');
+-- Assignments (sample)
+INSERT INTO assignments (teacher_id, classroom_id, title, type, due_date) VALUES
+(NULL, (SELECT id FROM classrooms WHERE name = 'Algebra 101'), 'Linear Equations Quiz', 'quiz', NOW() + INTERVAL '7 days'),
+(NULL, (SELECT id FROM classrooms WHERE name = 'Biology Basics'), 'Cell Structure Flashcards', 'flashcard_deck', NOW() + INTERVAL '5 days'),
+(NULL, (SELECT id FROM classrooms WHERE name = 'English Literature'), 'Essay Writing Practice', 'quiz', NOW() + INTERVAL '10 days'),
+(NULL, (SELECT id FROM classrooms WHERE name = 'World History'), 'Ancient Rome Flashcards', 'flashcard_deck', NOW() + INTERVAL '6 days'),
+(NULL, (SELECT id FROM classrooms WHERE name = 'Physics Fundamentals'), 'Forces Quiz', 'quiz', NOW() + INTERVAL '8 days');
 
--- Insert sample leaderboard opt-ins (3 users)
--- Note: These would be linked to actual user IDs in production
--- For now, this is a template for the structure
--- INSERT INTO public.leaderboard_opt_ins (user_id, display_alias, opted_in) VALUES
--- ('user-id-1', 'MathWizard99', true),
--- ('user-id-2', 'ScienceFan', true),
--- ('user-id-3', 'CodeNinja', true);
+-- Leaderboard opt-ins (sample)
+INSERT INTO leaderboard_opt_ins (user_id, display_alias, opted_in) VALUES
+('00000000-0000-0000-0000-000000000001', 'MathMaster99', true),
+('00000000-0000-0000-0000-000000000002', 'ScienceExplorer', true),
+('00000000-0000-0000-0000-000000000003', 'BookWorm42', true);

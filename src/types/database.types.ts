@@ -1,6 +1,3 @@
-// Database type definitions generated from Supabase schema
-// These types match the tables defined in migrations 0001_init.sql, 0002_admin_multitenant.sql, 0003_social_notifications.sql
-
 export type Json =
   | string
   | number
@@ -16,87 +13,61 @@ export interface Database {
         Row: {
           id: string
           email: string
-          display_name: string
+          full_name: string | null
           avatar_url: string | null
-          grade: 'K' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10' | '11' | '12' | 'college' | null
-          bio: string | null
           role: 'student' | 'teacher' | 'parent' | 'admin'
-          xp_total: number
-          level: number
-          streak_count: number
-          last_active_at: string | null
-          onboarding_complete: boolean
+          tier: 'free' | 'pro' | 'school'
+          grade: string | null
+          country: string | null
           dob: string | null
           is_minor: boolean | null
           parent_email: string | null
-          country: string | null
-          vpn_check_passed: boolean
-          selected_tier: 'free' | 'pro' | 'premium' | null
-          subscription_id: string | null
-          dyslexic_font_enabled: boolean
-          high_contrast_enabled: boolean
-          reduce_motion_enabled: boolean
-          tts_speed: number
-          larger_click_targets: boolean
-          always_show_focus: boolean
+          onboarding_complete: boolean
+          xp_total: number
+          streak_count: number
+          last_streak_date: string | null
+          vault_balance: number
           created_at: string
           updated_at: string
         }
         Insert: {
           id: string
           email: string
-          display_name: string
+          full_name?: string | null
           avatar_url?: string | null
-          grade?: 'K' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10' | '11' | '12' | 'college' | null
-          bio?: string | null
           role?: 'student' | 'teacher' | 'parent' | 'admin'
-          xp_total?: number
-          level?: number
-          streak_count?: number
-          last_active_at?: string | null
-          onboarding_complete?: boolean
+          tier?: 'free' | 'pro' | 'school'
+          grade?: string | null
+          country?: string | null
           dob?: string | null
           is_minor?: boolean | null
           parent_email?: string | null
-          country?: string | null
-          vpn_check_passed?: boolean
-          selected_tier?: 'free' | 'pro' | 'premium' | null
-          subscription_id?: string | null
-          dyslexic_font_enabled?: boolean
-          high_contrast_enabled?: boolean
-          reduce_motion_enabled?: boolean
-          tts_speed?: number
-          larger_click_targets?: boolean
-          always_show_focus?: boolean
+          onboarding_complete?: boolean
+          xp_total?: number
+          streak_count?: number
+          last_streak_date?: string | null
+          vault_balance?: number
           created_at?: string
           updated_at?: string
         }
         Update: {
-          id: string
+          id?: string
           email?: string
-          display_name?: string
+          full_name?: string | null
           avatar_url?: string | null
-          grade?: 'K' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9' | '10' | '11' | '12' | 'college' | null
-          bio?: string | null
           role?: 'student' | 'teacher' | 'parent' | 'admin'
-          xp_total?: number
-          level?: number
-          streak_count?: number
-          last_active_at?: string | null
-          onboarding_complete?: boolean
+          tier?: 'free' | 'pro' | 'school'
+          grade?: string | null
+          country?: string | null
           dob?: string | null
           is_minor?: boolean | null
           parent_email?: string | null
-          country?: string | null
-          vpn_check_passed?: boolean
-          selected_tier?: 'free' | 'pro' | 'premium' | null
-          subscription_id?: string | null
-          dyslexic_font_enabled?: boolean
-          high_contrast_enabled?: boolean
-          reduce_motion_enabled?: boolean
-          tts_speed?: number
-          larger_click_targets?: boolean
-          always_show_focus?: boolean
+          onboarding_complete?: boolean
+          xp_total?: number
+          streak_count?: number
+          last_streak_date?: string | null
+          vault_balance?: number
+          created_at?: string
           updated_at?: string
         }
       }
@@ -104,7 +75,7 @@ export interface Database {
         Row: {
           id: string
           user_id: string
-          subject: string
+          test_name: string
           score: number
           max_score: number
           test_date: string
@@ -113,16 +84,16 @@ export interface Database {
         Insert: {
           id?: string
           user_id: string
-          subject: string
+          test_name: string
           score: number
           max_score: number
           test_date: string
           created_at?: string
         }
         Update: {
-          id: string
+          id?: string
           user_id?: string
-          subject?: string
+          test_name?: string
           score?: number
           max_score?: number
           test_date?: string
@@ -133,73 +104,62 @@ export interface Database {
         Row: {
           id: string
           subject: string
-          branch: string
-          level: number
           title: string
           description: string | null
-          required_xp: number
-          parent_node_id: string | null
-          position_x: number
-          position_y: number
+          parent_id: string | null
+          order_index: number
+          xp_reward: number
           created_at: string
         }
         Insert: {
           id?: string
           subject: string
-          branch: string
-          level: number
           title: string
           description?: string | null
-          required_xp?: number
-          parent_node_id?: string | null
-          position_x: number
-          position_y: number
+          parent_id?: string | null
+          order_index: number
+          xp_reward?: number
           created_at?: string
         }
         Update: {
-          id: string
+          id?: string
           subject?: string
-          branch?: string
-          level?: number
           title?: string
           description?: string | null
-          required_xp?: number
-          parent_node_id?: string | null
-          position_x?: number
-          position_y?: number
+          parent_id?: string | null
+          order_index?: number
+          xp_reward?: number
+          created_at?: string
         }
       }
       user_skill_progress: {
         Row: {
           id: string
           user_id: string
-          node_id: string
-          unlocked: boolean
-          mastery_level: number
-          unlocked_at: string | null
+          skill_node_id: string
+          completed: boolean
+          completed_at: string | null
         }
         Insert: {
           id?: string
           user_id: string
-          node_id: string
-          unlocked?: boolean
-          mastery_level?: number
-          unlocked_at?: string | null
+          skill_node_id: string
+          completed?: boolean
+          completed_at?: string | null
         }
         Update: {
-          id: string
+          id?: string
           user_id?: string
-          node_id?: string
-          unlocked?: boolean
-          mastery_level?: number
-          unlocked_at?: string | null
+          skill_node_id?: string
+          completed?: boolean
+          completed_at?: string | null
         }
       }
       quiz_attempts: {
         Row: {
           id: string
           user_id: string
-          subject: string
+          skill_node_id: string | null
           score: number
           total_questions: number
           completed_at: string
@@ -207,15 +167,15 @@ export interface Database {
         Insert: {
           id?: string
           user_id: string
-          subject: string
+          skill_node_id?: string | null
           score: number
           total_questions: number
           completed_at?: string
         }
         Update: {
-          id: string
+          id?: string
           user_id?: string
-          subject?: string
+          skill_node_id?: string | null
           score?: number
           total_questions?: number
           completed_at?: string
@@ -228,7 +188,7 @@ export interface Database {
           subject: string
           topic: string
           gap_severity: 'minor' | 'moderate' | 'severe'
-          detected_at: string
+          created_at: string
           resolved_at: string | null
         }
         Insert: {
@@ -237,16 +197,16 @@ export interface Database {
           subject: string
           topic: string
           gap_severity: 'minor' | 'moderate' | 'severe'
-          detected_at?: string
+          created_at?: string
           resolved_at?: string | null
         }
         Update: {
-          id: string
+          id?: string
           user_id?: string
           subject?: string
           topic?: string
           gap_severity?: 'minor' | 'moderate' | 'severe'
-          detected_at?: string
+          created_at?: string
           resolved_at?: string | null
         }
       }
@@ -256,9 +216,8 @@ export interface Database {
           user_id: string
           title: string
           content: string
-          mood: 'excited' | 'calm' | 'confused' | 'frustrated' | 'proud' | null
-          tags: string[]
-          is_private: boolean
+          mood: 'great' | 'good' | 'neutral' | 'challenged' | 'struggling' | null
+          tags: string[] | null
           created_at: string
           updated_at: string
         }
@@ -267,20 +226,19 @@ export interface Database {
           user_id: string
           title: string
           content: string
-          mood?: 'excited' | 'calm' | 'confused' | 'frustrated' | 'proud' | null
-          tags?: string[]
-          is_private?: boolean
+          mood?: 'great' | 'good' | 'neutral' | 'challenged' | 'struggling' | null
+          tags?: string[] | null
           created_at?: string
           updated_at?: string
         }
         Update: {
-          id: string
+          id?: string
           user_id?: string
           title?: string
           content?: string
-          mood?: 'excited' | 'calm' | 'confused' | 'frustrated' | 'proud' | null
-          tags?: string[]
-          is_private?: boolean
+          mood?: 'great' | 'good' | 'neutral' | 'challenged' | 'struggling' | null
+          tags?: string[] | null
+          created_at?: string
           updated_at?: string
         }
       }
@@ -290,8 +248,8 @@ export interface Database {
           user_id: string
           title: string
           description: string | null
-          item_type: 'certificate' | 'project' | 'reflection' | 'achievement'
-          item_url: string | null
+          item_type: 'project' | 'certificate' | 'achievement' | 'reflection'
+          metadata: Json | null
           created_at: string
         }
         Insert: {
@@ -299,44 +257,45 @@ export interface Database {
           user_id: string
           title: string
           description?: string | null
-          item_type: 'certificate' | 'project' | 'reflection' | 'achievement'
-          item_url?: string | null
+          item_type: 'project' | 'certificate' | 'achievement' | 'reflection'
+          metadata?: Json | null
           created_at?: string
         }
         Update: {
-          id: string
+          id?: string
           user_id?: string
           title?: string
           description?: string | null
-          item_type?: 'certificate' | 'project' | 'reflection' | 'achievement'
-          item_url?: string | null
+          item_type?: 'project' | 'certificate' | 'achievement' | 'reflection'
+          metadata?: Json | null
+          created_at?: string
         }
       }
       pomodoro_sessions: {
         Row: {
           id: string
           user_id: string
+          subject: string | null
           duration_seconds: number
           completed: boolean
-          task: string | null
           started_at: string
           completed_at: string | null
         }
         Insert: {
           id?: string
           user_id: string
+          subject?: string | null
           duration_seconds: number
           completed?: boolean
-          task?: string | null
           started_at?: string
           completed_at?: string | null
         }
         Update: {
-          id: string
+          id?: string
           user_id?: string
+          subject?: string | null
           duration_seconds?: number
           completed?: boolean
-          task?: string | null
           started_at?: string
           completed_at?: string | null
         }
@@ -346,26 +305,28 @@ export interface Database {
           id: string
           name: string
           description: string | null
-          focus_subject: string | null
-          member_count: number
+          subject: string | null
           created_by: string | null
+          member_count: number
           created_at: string
         }
         Insert: {
           id?: string
           name: string
           description?: string | null
-          focus_subject?: string | null
-          member_count?: number
+          subject?: string | null
           created_by?: string | null
+          member_count?: number
           created_at?: string
         }
         Update: {
-          id: string
+          id?: string
           name?: string
           description?: string | null
-          focus_subject?: string | null
+          subject?: string | null
+          created_by?: string | null
           member_count?: number
+          created_at?: string
         }
       }
       guild_members: {
@@ -373,21 +334,22 @@ export interface Database {
           id: string
           guild_id: string
           user_id: string
-          role: 'member' | 'moderator' | 'admin'
+          role: 'member' | 'moderator' | 'leader'
           joined_at: string
         }
         Insert: {
           id?: string
           guild_id: string
           user_id: string
-          role?: 'member' | 'moderator' | 'admin'
+          role?: 'member' | 'moderator' | 'leader'
           joined_at?: string
         }
         Update: {
-          id: string
+          id?: string
           guild_id?: string
           user_id?: string
-          role?: 'member' | 'moderator' | 'admin'
+          role?: 'member' | 'moderator' | 'leader'
+          joined_at?: string
         }
       }
       guild_messages: {
@@ -406,10 +368,11 @@ export interface Database {
           created_at?: string
         }
         Update: {
-          id: string
+          id?: string
           guild_id?: string
           user_id?: string
           content?: string
+          created_at?: string
         }
       }
       badges: {
@@ -418,8 +381,8 @@ export interface Database {
           name: string
           description: string | null
           icon: string | null
-          tier: 'bronze' | 'silver' | 'gold' | 'platinum'
-          required_xp: number
+          requirement: string | null
+          xp_reward: number
           created_at: string
         }
         Insert: {
@@ -427,17 +390,18 @@ export interface Database {
           name: string
           description?: string | null
           icon?: string | null
-          tier?: 'bronze' | 'silver' | 'gold' | 'platinum'
-          required_xp?: number
+          requirement?: string | null
+          xp_reward?: number
           created_at?: string
         }
         Update: {
-          id: string
+          id?: string
           name?: string
           description?: string | null
           icon?: string | null
-          tier?: 'bronze' | 'silver' | 'gold' | 'platinum'
-          required_xp?: number
+          requirement?: string | null
+          xp_reward?: number
+          created_at?: string
         }
       }
       user_badges: {
@@ -454,7 +418,7 @@ export interface Database {
           earned_at?: string
         }
         Update: {
-          id: string
+          id?: string
           user_id?: string
           badge_id?: string
           earned_at?: string
@@ -464,34 +428,29 @@ export interface Database {
         Row: {
           id: string
           user_id: string
-          tier: 'free' | 'pro' | 'premium'
+          tier: 'pro' | 'school'
           status: 'active' | 'cancelled' | 'expired'
-          stripe_subscription_id: string | null
-          current_period_start: string | null
-          current_period_end: string | null
-          cancel_at: string | null
+          start_date: string
+          end_date: string | null
           created_at: string
         }
         Insert: {
           id?: string
           user_id: string
-          tier: 'free' | 'pro' | 'premium'
+          tier: 'pro' | 'school'
           status?: 'active' | 'cancelled' | 'expired'
-          stripe_subscription_id?: string | null
-          current_period_start?: string | null
-          current_period_end?: string | null
-          cancel_at?: string | null
+          start_date: string
+          end_date?: string | null
           created_at?: string
         }
         Update: {
-          id: string
+          id?: string
           user_id?: string
-          tier?: 'free' | 'pro' | 'premium'
+          tier?: 'pro' | 'school'
           status?: 'active' | 'cancelled' | 'expired'
-          stripe_subscription_id?: string | null
-          current_period_start?: string | null
-          current_period_end?: string | null
-          cancel_at?: string | null
+          start_date?: string
+          end_date?: string | null
+          created_at?: string
         }
       }
       contact_messages: {
@@ -512,11 +471,12 @@ export interface Database {
           created_at?: string
         }
         Update: {
-          id: string
+          id?: string
           name?: string
           email?: string
           subject?: string
           message?: string
+          created_at?: string
         }
       }
       flashcard_decks: {
@@ -541,12 +501,13 @@ export interface Database {
           updated_at?: string
         }
         Update: {
-          id: string
+          id?: string
           user_id?: string
           title?: string
           description?: string | null
           subject?: string | null
           is_public?: boolean
+          created_at?: string
           updated_at?: string
         }
       }
@@ -556,7 +517,7 @@ export interface Database {
           deck_id: string
           front: string
           back: string
-          position: number
+          order_index: number
           created_at: string
         }
         Insert: {
@@ -564,15 +525,16 @@ export interface Database {
           deck_id: string
           front: string
           back: string
-          position?: number
+          order_index: number
           created_at?: string
         }
         Update: {
-          id: string
+          id?: string
           deck_id?: string
           front?: string
           back?: string
-          position?: number
+          order_index?: number
+          created_at?: string
         }
       }
       code_snippets: {
@@ -599,13 +561,14 @@ export interface Database {
           updated_at?: string
         }
         Update: {
-          id: string
+          id?: string
           user_id?: string
           title?: string
           language?: string
           code?: string
           description?: string | null
           is_public?: boolean
+          created_at?: string
           updated_at?: string
         }
       }
@@ -614,111 +577,109 @@ export interface Database {
           id: string
           name: string
           description: string | null
-          item_type: 'cosmetic' | 'avatar_frame' | 'background' | 'effect'
-          cost_xp: number
-          rarity: 'common' | 'rare' | 'epic' | 'legendary'
-          image_url: string | null
+          item_type: 'avatar' | 'theme' | 'badge_frame' | 'title'
+          cost: number
+          icon: string | null
+          is_available: boolean
           created_at: string
         }
         Insert: {
           id?: string
           name: string
           description?: string | null
-          item_type: 'cosmetic' | 'avatar_frame' | 'background' | 'effect'
-          cost_xp: number
-          rarity?: 'common' | 'rare' | 'epic' | 'legendary'
-          image_url?: string | null
+          item_type: 'avatar' | 'theme' | 'badge_frame' | 'title'
+          cost: number
+          icon?: string | null
+          is_available?: boolean
           created_at?: string
         }
         Update: {
-          id: string
+          id?: string
           name?: string
           description?: string | null
-          item_type?: 'cosmetic' | 'avatar_frame' | 'background' | 'effect'
-          cost_xp?: number
-          rarity?: 'common' | 'rare' | 'epic' | 'legendary'
-          image_url?: string | null
+          item_type?: 'avatar' | 'theme' | 'badge_frame' | 'title'
+          cost?: number
+          icon?: string | null
+          is_available?: boolean
+          created_at?: string
         }
       }
       user_inventory: {
         Row: {
           id: string
           user_id: string
-          item_id: string
-          equipped: boolean
+          vault_item_id: string
           purchased_at: string
+          is_equipped: boolean
         }
         Insert: {
           id?: string
           user_id: string
-          item_id: string
-          equipped?: boolean
+          vault_item_id: string
           purchased_at?: string
+          is_equipped?: boolean
         }
         Update: {
-          id: string
+          id?: string
           user_id?: string
-          item_id?: string
-          equipped?: boolean
+          vault_item_id?: string
+          purchased_at?: string
+          is_equipped?: boolean
         }
       }
       organizations: {
         Row: {
           id: string
           name: string
-          type: 'school' | 'district' | 'company'
-          admin_id: string
-          is_active: boolean
+          domain: string | null
+          tier: 'school' | 'district' | 'enterprise'
+          max_students: number | null
           created_at: string
-          updated_at: string
         }
         Insert: {
           id?: string
           name: string
-          type: 'school' | 'district' | 'company'
-          admin_id: string
-          is_active?: boolean
+          domain?: string | null
+          tier: 'school' | 'district' | 'enterprise'
+          max_students?: number | null
           created_at?: string
-          updated_at?: string
         }
         Update: {
-          id: string
+          id?: string
           name?: string
-          type?: 'school' | 'district' | 'company'
-          admin_id?: string
-          is_active?: boolean
-          updated_at?: string
+          domain?: string | null
+          tier?: 'school' | 'district' | 'enterprise'
+          max_students?: number | null
+          created_at?: string
         }
       }
       classrooms: {
         Row: {
           id: string
-          organization_id: string
+          organization_id: string | null
+          teacher_id: string | null
           name: string
-          grade_level: string | null
           subject: string | null
-          teacher_id: string
+          grade: string | null
           created_at: string
-          updated_at: string
         }
         Insert: {
           id?: string
-          organization_id: string
+          organization_id?: string | null
+          teacher_id?: string | null
           name: string
-          grade_level?: string | null
           subject?: string | null
-          teacher_id: string
+          grade?: string | null
           created_at?: string
-          updated_at?: string
         }
         Update: {
-          id: string
-          organization_id?: string
+          id?: string
+          organization_id?: string | null
+          teacher_id?: string | null
           name?: string
-          grade_level?: string | null
           subject?: string | null
-          teacher_id?: string
-          updated_at?: string
+          grade?: string | null
+          created_at?: string
         }
       }
       classroom_members: {
@@ -735,69 +696,66 @@ export interface Database {
           joined_at?: string
         }
         Update: {
-          id: string
+          id?: string
           classroom_id?: string
           student_id?: string
+          joined_at?: string
         }
       }
       moderation_actions: {
         Row: {
           id: string
-          moderator_id: string
-          target_type: 'user' | 'guild_message' | 'code_snippet' | 'flashcard_deck'
-          target_id: string
-          action: 'warning' | 'suspended' | 'deleted' | 'flagged'
+          moderator_id: string | null
+          target_user_id: string | null
+          action_type: 'warning' | 'suspension' | 'ban' | 'content_removal'
           reason: string | null
           created_at: string
         }
         Insert: {
           id?: string
-          moderator_id: string
-          target_type: 'user' | 'guild_message' | 'code_snippet' | 'flashcard_deck'
-          target_id: string
-          action: 'warning' | 'suspended' | 'deleted' | 'flagged'
+          moderator_id?: string | null
+          target_user_id?: string | null
+          action_type: 'warning' | 'suspension' | 'ban' | 'content_removal'
           reason?: string | null
           created_at?: string
         }
         Update: {
-          id: string
-          moderator_id?: string
-          target_type?: 'user' | 'guild_message' | 'code_snippet' | 'flashcard_deck'
-          target_id?: string
-          action?: 'warning' | 'suspended' | 'deleted' | 'flagged'
+          id?: string
+          moderator_id?: string | null
+          target_user_id?: string | null
+          action_type?: 'warning' | 'suspension' | 'ban' | 'content_removal'
           reason?: string | null
+          created_at?: string
         }
       }
       compliance_events: {
         Row: {
           id: string
           user_id: string | null
-          event_type: string
-          details: Json
-          ip_address: string | null
+          event_type: 'coppa_consent' | 'gdpr_export' | 'account_deletion' | 'parent_link' | 'data_request'
+          details: Json | null
           created_at: string
         }
         Insert: {
           id?: string
           user_id?: string | null
-          event_type: string
-          details?: Json
-          ip_address?: string | null
+          event_type: 'coppa_consent' | 'gdpr_export' | 'account_deletion' | 'parent_link' | 'data_request'
+          details?: Json | null
           created_at?: string
         }
         Update: {
-          id: string
+          id?: string
           user_id?: string | null
-          event_type?: string
-          details?: Json
-          ip_address?: string | null
+          event_type?: 'coppa_consent' | 'gdpr_export' | 'account_deletion' | 'parent_link' | 'data_request'
+          details?: Json | null
+          created_at?: string
         }
       }
       notifications: {
         Row: {
           id: string
           user_id: string
-          type: 'streak_reminder' | 'badge_unlock' | 'guild_activity' | 'ai_review_ready' | 'assignment_due' | 'weekly_digest' | 'parent_request_approved'
+          type: 'streak_reminder' | 'badge_unlock' | 'guild_activity' | 'ai_review_ready' | 'assignment_due'
           title: string
           body: string
           read: boolean
@@ -806,19 +764,20 @@ export interface Database {
         Insert: {
           id?: string
           user_id: string
-          type: 'streak_reminder' | 'badge_unlock' | 'guild_activity' | 'ai_review_ready' | 'assignment_due' | 'weekly_digest' | 'parent_request_approved'
+          type: 'streak_reminder' | 'badge_unlock' | 'guild_activity' | 'ai_review_ready' | 'assignment_due'
           title: string
           body: string
           read?: boolean
           created_at?: string
         }
         Update: {
-          id: string
+          id?: string
           user_id?: string
-          type?: 'streak_reminder' | 'badge_unlock' | 'guild_activity' | 'ai_review_ready' | 'assignment_due' | 'weekly_digest' | 'parent_request_approved'
+          type?: 'streak_reminder' | 'badge_unlock' | 'guild_activity' | 'ai_review_ready' | 'assignment_due'
           title?: string
           body?: string
           read?: boolean
+          created_at?: string
         }
       }
       assignments: {
@@ -829,7 +788,7 @@ export interface Database {
           title: string
           type: 'quiz' | 'flashcard_deck'
           ref_id: string | null
-          due_date: string | null
+          due_date: string
           created_at: string
         }
         Insert: {
@@ -839,17 +798,18 @@ export interface Database {
           title: string
           type: 'quiz' | 'flashcard_deck'
           ref_id?: string | null
-          due_date?: string | null
+          due_date: string
           created_at?: string
         }
         Update: {
-          id: string
+          id?: string
           teacher_id?: string
           classroom_id?: string
           title?: string
           type?: 'quiz' | 'flashcard_deck'
           ref_id?: string | null
-          due_date?: string | null
+          due_date?: string
+          created_at?: string
         }
       }
       assignment_targets: {
@@ -868,7 +828,7 @@ export interface Database {
           completed_at?: string | null
         }
         Update: {
-          id: string
+          id?: string
           assignment_id?: string
           student_id?: string
           completed?: boolean
@@ -882,7 +842,6 @@ export interface Database {
           student_id: string
           status: 'pending' | 'approved' | 'revoked'
           created_at: string
-          updated_at: string
         }
         Insert: {
           id?: string
@@ -890,36 +849,39 @@ export interface Database {
           student_id: string
           status?: 'pending' | 'approved' | 'revoked'
           created_at?: string
-          updated_at?: string
         }
         Update: {
-          id: string
+          id?: string
           parent_id?: string
           student_id?: string
           status?: 'pending' | 'approved' | 'revoked'
-          updated_at?: string
+          created_at?: string
         }
       }
       leaderboard_opt_ins: {
         Row: {
           id: string
           user_id: string
-          display_alias: string
+          display_alias: string | null
           opted_in: boolean
           created_at: string
+          updated_at: string
         }
         Insert: {
           id?: string
           user_id: string
-          display_alias: string
+          display_alias?: string | null
           opted_in?: boolean
           created_at?: string
+          updated_at?: string
         }
         Update: {
-          id: string
+          id?: string
           user_id?: string
-          display_alias?: string
+          display_alias?: string | null
           opted_in?: boolean
+          created_at?: string
+          updated_at?: string
         }
       }
       error_logs: {
@@ -940,45 +902,29 @@ export interface Database {
           created_at?: string
         }
         Update: {
-          id: string
+          id?: string
           user_id?: string | null
           message?: string
           stack?: string | null
           route?: string | null
+          created_at?: string
         }
       }
-      rate_limit_counters: {
-        Row: {
-          id: string
-          user_id: string
-          endpoint: string
-          request_count: number
-          window_start: string
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      purchase_vault_item: {
+        Args: {
+          user_uuid: string
+          item_uuid: string
         }
-        Insert: {
-          id?: string
-          user_id: string
-          endpoint: string
-          request_count?: number
-          window_start?: string
-        }
-        Update: {
-          id: string
-          user_id?: string
-          endpoint?: string
-          request_count?: number
-          window_start?: string
-        }
+        Returns: void
       }
-      Views: {
-        [_ in never]: never
-      }
-      Functions: {
-        [_ in never]: never
-      }
-      Enums: {
-        [_ in never]: never
-      }
+    }
+    Enums: {
+      [_ in never]: never
     }
   }
 }

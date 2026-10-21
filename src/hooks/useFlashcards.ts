@@ -1,100 +1,53 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '../lib/supabase';
-import type { FlashcardDeck, FlashcardItem } from '../types';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { supabase } from '@/lib/supabase'
+import { authStore } from '@/store'
+import { Database } from '@/types'
 
-export const useFlashcardDecks = () => {
-  return useQuery({
-    queryKey: ['flashcard-decks'],
+type FlashcardDeck = Database['public']['Tables']['flashcard_decks']['Row']
+type FlashcardItem = Database['public']['Tables']['flashcard_items']['Row']
+
+export function useFlashcards() {
+  const { profile } = authStore()
+  const queryClient = useQueryClient()
+
+  const { data: decks, isLoading } = useQuery({
+    queryKey: ['flashcardDecks', profile?.id],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
+      if (!profile?.id) return []
       const { data, error } = await supabase
         .from('flashcard_decks')
         .select('*, flashcard_items(*)')
-        .eq('user_id', user.id)
-        .order('updated_at', { ascending: false });
-
-      if (error) throw error;
-      return data as FlashcardDeck[];
+        .eq('user_id', profile.id)
+      if (error) throw error
+      return data as (FlashcardDeck & { flashcard_items: FlashcardItem[] })[]
     },
-  });
-};
+    enabled: !!profile?.id,
+  })
 
-export const useCreateDeck = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (deck: {
-      title: string;
-      description: string | null;
-      subject: string | null;
-      isPublic: boolean;
-    }) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
+  const createDeck = useMutation({
+    mutationFn: async (deck: Omit<FlashcardDeck, 'id' | 'user_id' | 'created_at'>) => {
+      if (!profile?.id) throw new Error('No user logged in')
       const { data, error } = await supabase
         .from('flashcard_decks')
         .insert({
-          user_id: user.id,
           ...deck,
+          user_id: profile.id,
+          created_at: new Date().toISOString(),
         })
         .select()
-        .single();
-
-      if (error) throw error;
-      return data as FlashcardDeck;
+        .single()
+      if (error) throw error
+      return data as FlashcardDeck
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['flashcard-decks'] });
+      queryClient.invalidateQueries({ queryKey: ['flashcardDecks'] })
     },
-  });
-};
+  })
 
-export const useAddFlashcard = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({
-      deckId,
-      front,
-      back,
-    }: {
-      deckId: string;
-      front: string;
-      back: string;
-    }) => {
-      const { data, error } = await supabase
-        .from('flashcard_items')
-        .insert({
-          deck_id: deckId,
-          front,
-          back,
-          position: 0,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data as FlashcardItem;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['flashcard-decks'] });
-    },
-  });
-};
-
-export const useDeleteDeck = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (deckId: string) => {
-      const { error } = await supabase.from('flashcard_decks').delete().eq('id', deckId);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['flashcard-decks'] });
-    },
-  });
-};
+  return {
+    decks,
+    isLoading,
+    createDeck: createDeck.mutate,
+    isCreating: createDeck.isPending,
+  }
+}

@@ -1,268 +1,381 @@
--- Migration 0001: Core schema for Academica
--- Owner-only RLS enforced for all tables
-
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- Enable pg_cron for scheduled functions
-CREATE EXTENSION IF NOT EXISTS "pg_cron";
-
--- Profiles table (extends Supabase auth.users)
-CREATE TABLE IF NOT EXISTS public.profiles (
-  id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+-- Profiles table (extends auth.users)
+CREATE TABLE profiles (
+  id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
   email TEXT NOT NULL,
-  display_name TEXT NOT NULL,
+  full_name TEXT,
   avatar_url TEXT,
-  grade TEXT CHECK (grade IN ('K','1','2','3','4','5','6','7','8','9','10','11','12','college')),
-  bio TEXT,
-  role TEXT NOT NULL DEFAULT 'student' CHECK (role IN ('student','teacher','parent','admin')),
-  xp_total INTEGER DEFAULT 0 CHECK (xp_total >= 0),
-  level INTEGER DEFAULT 1 CHECK (level >= 1),
-  streak_count INTEGER DEFAULT 0 CHECK (streak_count >= 0),
-  last_active_at TIMESTAMPTZ,
-  onboarding_complete BOOLEAN DEFAULT false,
+  role TEXT CHECK (role IN ('student', 'teacher', 'parent', 'admin')) DEFAULT 'student',
+  tier TEXT CHECK (tier IN ('free', 'pro', 'school')) DEFAULT 'free',
+  grade TEXT,
+  country TEXT,
   dob DATE,
   is_minor BOOLEAN,
   parent_email TEXT,
-  country TEXT,
-  vpn_check_passed BOOLEAN DEFAULT false,
-  selected_tier TEXT CHECK (selected_tier IN ('free','pro','premium')),
-  subscription_id UUID REFERENCES subscriptions(id) ON DELETE SET NULL,
-  dyslexic_font_enabled BOOLEAN DEFAULT false,
-  high_contrast_enabled BOOLEAN DEFAULT false,
-  reduce_motion_enabled BOOLEAN DEFAULT false,
-  tts_speed INTEGER DEFAULT 1 CHECK (tts_speed BETWEEN 0.5 AND 2),
-  larger_click_targets BOOLEAN DEFAULT false,
-  always_show_focus BOOLEAN DEFAULT false,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  onboarding_complete BOOLEAN DEFAULT false,
+  xp_total INTEGER DEFAULT 0,
+  streak_count INTEGER DEFAULT 0,
+  last_streak_date DATE,
+  vault_balance INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
 -- Test scores
-CREATE TABLE IF NOT EXISTS public.test_scores (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  subject TEXT NOT NULL,
+CREATE TABLE test_scores (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  test_name TEXT NOT NULL,
   score INTEGER NOT NULL,
   max_score INTEGER NOT NULL,
   test_date DATE NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- Skill tree nodes
-CREATE TABLE IF NOT EXISTS public.skill_nodes (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+-- Skill nodes
+CREATE TABLE skill_nodes (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   subject TEXT NOT NULL,
-  branch TEXT NOT NULL,
-  level INTEGER NOT NULL CHECK (level >= 1),
   title TEXT NOT NULL,
   description TEXT,
-  required_xp INTEGER NOT NULL DEFAULT 0,
-  parent_node_id UUID REFERENCES skill_nodes(id) ON DELETE SET NULL,
-  position_x INTEGER NOT NULL,
-  position_y INTEGER NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  parent_id UUID REFERENCES skill_nodes(id) ON DELETE CASCADE,
+  order_index INTEGER NOT NULL,
+  xp_reward INTEGER DEFAULT 10,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
 -- User skill progress
-CREATE TABLE IF NOT EXISTS public.user_skill_progress (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  node_id UUID NOT NULL REFERENCES skill_nodes(id) ON DELETE CASCADE,
-  unlocked BOOLEAN DEFAULT false,
-  mastery_level INTEGER DEFAULT 0 CHECK (mastery_level BETWEEN 0 AND 100),
-  unlocked_at TIMESTAMPTZ,
-  UNIQUE(user_id, node_id)
+CREATE TABLE user_skill_progress (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  skill_node_id UUID REFERENCES skill_nodes(id) ON DELETE CASCADE NOT NULL,
+  completed BOOLEAN DEFAULT false,
+  completed_at TIMESTAMP WITH TIME ZONE,
+  UNIQUE(user_id, skill_node_id)
 );
 
 -- Quiz attempts
-CREATE TABLE IF NOT EXISTS public.quiz_attempts (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  subject TEXT NOT NULL,
+CREATE TABLE quiz_attempts (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  skill_node_id UUID REFERENCES skill_nodes(id) ON DELETE CASCADE,
   score INTEGER NOT NULL,
   total_questions INTEGER NOT NULL,
-  completed_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  completed_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
 -- Knowledge gaps
-CREATE TABLE IF NOT EXISTS public.knowledge_gaps (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+CREATE TABLE knowledge_gaps (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
   subject TEXT NOT NULL,
   topic TEXT NOT NULL,
-  gap_severity TEXT CHECK (gap_severity IN ('minor','moderate','severe')),
-  detected_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  resolved_at TIMESTAMPTZ
+  gap_severity TEXT CHECK (gap_severity IN ('minor', 'moderate', 'severe')) NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  resolved_at TIMESTAMP WITH TIME ZONE
 );
 
 -- Journal entries
-CREATE TABLE IF NOT EXISTS public.journal_entries (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+CREATE TABLE journal_entries (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
   title TEXT NOT NULL,
   content TEXT NOT NULL,
-  mood TEXT CHECK (mood IN ('excited','calm','confused','frustrated','proud')),
+  mood TEXT CHECK (mood IN ('great', 'good', 'neutral', 'challenged', 'struggling')),
   tags TEXT[],
-  is_private BOOLEAN DEFAULT true,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
 -- Portfolio items
-CREATE TABLE IF NOT EXISTS public.portfolio_items (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+CREATE TABLE portfolio_items (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
   title TEXT NOT NULL,
   description TEXT,
-  item_type TEXT CHECK (item_type IN ('certificate','project','reflection','achievement')),
-  item_url TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  item_type TEXT CHECK (item_type IN ('project', 'certificate', 'achievement', 'reflection')) NOT NULL,
+  metadata JSONB,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
 -- Pomodoro sessions
-CREATE TABLE IF NOT EXISTS public.pomodoro_sessions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+CREATE TABLE pomodoro_sessions (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  subject TEXT,
   duration_seconds INTEGER NOT NULL,
   completed BOOLEAN DEFAULT false,
-  task TEXT,
-  started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  completed_at TIMESTAMPTZ
+  started_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  completed_at TIMESTAMP WITH TIME ZONE
 );
 
 -- Guilds
-CREATE TABLE IF NOT EXISTS public.guilds (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+CREATE TABLE guilds (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   name TEXT NOT NULL,
   description TEXT,
-  focus_subject TEXT,
-  member_count INTEGER DEFAULT 0,
+  subject TEXT,
   created_by UUID REFERENCES profiles(id) ON DELETE SET NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  member_count INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
 -- Guild members
-CREATE TABLE IF NOT EXISTS public.guild_members (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  guild_id UUID NOT NULL REFERENCES guilds(id) ON DELETE CASCADE,
-  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  role TEXT DEFAULT 'member' CHECK (role IN ('member','moderator','admin')),
-  joined_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+CREATE TABLE guild_members (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  guild_id UUID REFERENCES guilds(id) ON DELETE CASCADE NOT NULL,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  role TEXT CHECK (role IN ('member', 'moderator', 'leader')) DEFAULT 'member',
+  joined_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
   UNIQUE(guild_id, user_id)
 );
 
 -- Guild messages
-CREATE TABLE IF NOT EXISTS public.guild_messages (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  guild_id UUID NOT NULL REFERENCES guilds(id) ON DELETE CASCADE,
-  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+CREATE TABLE guild_messages (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  guild_id UUID REFERENCES guilds(id) ON DELETE CASCADE NOT NULL,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
   content TEXT NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
 -- Badges
-CREATE TABLE IF NOT EXISTS public.badges (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+CREATE TABLE badges (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   name TEXT NOT NULL,
   description TEXT,
   icon TEXT,
-  tier TEXT CHECK (tier IN ('bronze','silver','gold','platinum')),
-  required_xp INTEGER DEFAULT 0,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  requirement TEXT,
+  xp_reward INTEGER DEFAULT 0,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
 -- User badges
-CREATE TABLE IF NOT EXISTS public.user_badges (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  badge_id UUID NOT NULL REFERENCES badges(id) ON DELETE CASCADE,
-  earned_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+CREATE TABLE user_badges (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  badge_id UUID REFERENCES badges(id) ON DELETE CASCADE NOT NULL,
+  earned_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
   UNIQUE(user_id, badge_id)
 );
 
 -- Subscriptions
-CREATE TABLE IF NOT EXISTS public.subscriptions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  tier TEXT NOT NULL CHECK (tier IN ('free','pro','premium')),
-  status TEXT DEFAULT 'active' CHECK (status IN ('active','cancelled','expired')),
-  stripe_subscription_id TEXT,
-  current_period_start TIMESTAMPTZ,
-  current_period_end TIMESTAMPTZ,
-  cancel_at TIMESTAMPTZ,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+CREATE TABLE subscriptions (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  tier TEXT CHECK (tier IN ('pro', 'school')) NOT NULL,
+  status TEXT CHECK (status IN ('active', 'cancelled', 'expired')) DEFAULT 'active',
+  start_date DATE NOT NULL,
+  end_date DATE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
 -- Contact messages
-CREATE TABLE IF NOT EXISTS public.contact_messages (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+CREATE TABLE contact_messages (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   name TEXT NOT NULL,
   email TEXT NOT NULL,
   subject TEXT NOT NULL,
   message TEXT NOT NULL,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
 -- Flashcard decks
-CREATE TABLE IF NOT EXISTS public.flashcard_decks (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+CREATE TABLE flashcard_decks (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
   title TEXT NOT NULL,
   description TEXT,
   subject TEXT,
   is_public BOOLEAN DEFAULT false,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
 -- Flashcard items
-CREATE TABLE IF NOT EXISTS public.flashcard_items (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  deck_id UUID NOT NULL REFERENCES flashcard_decks(id) ON DELETE CASCADE,
+CREATE TABLE flashcard_items (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  deck_id UUID REFERENCES flashcard_decks(id) ON DELETE CASCADE NOT NULL,
   front TEXT NOT NULL,
   back TEXT NOT NULL,
-  position INTEGER DEFAULT 0,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  order_index INTEGER NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
 -- Code snippets
-CREATE TABLE IF NOT EXISTS public.code_snippets (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+CREATE TABLE code_snippets (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
   title TEXT NOT NULL,
   language TEXT NOT NULL,
   code TEXT NOT NULL,
   description TEXT,
   is_public BOOLEAN DEFAULT false,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
--- Vault items
-CREATE TABLE IF NOT EXISTS public.vault_items (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+-- Vault items (cosmetics)
+CREATE TABLE vault_items (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
   name TEXT NOT NULL,
   description TEXT,
-  item_type TEXT CHECK (item_type IN ('cosmetic','avatar_frame','background','effect')),
-  cost_xp INTEGER NOT NULL CHECK (cost_xp >= 0),
-  rarity TEXT CHECK (rarity IN ('common','rare','epic','legendary')),
-  image_url TEXT,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+  item_type TEXT CHECK (item_type IN ('avatar', 'theme', 'badge_frame', 'title')) NOT NULL,
+  cost INTEGER NOT NULL,
+  icon TEXT,
+  is_available BOOLEAN DEFAULT true,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
 -- User inventory
-CREATE TABLE IF NOT EXISTS public.user_inventory (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
-  item_id UUID NOT NULL REFERENCES vault_items(id) ON DELETE CASCADE,
-  equipped BOOLEAN DEFAULT false,
-  purchased_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  UNIQUE(user_id, item_id)
+CREATE TABLE user_inventory (
+  id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  vault_item_id UUID REFERENCES vault_items(id) ON DELETE CASCADE NOT NULL,
+  purchased_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+  is_equipped BOOLEAN DEFAULT false,
+  UNIQUE(user_id, vault_item_id)
 );
 
+-- RLS Policies
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE test_scores ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_skill_progress ENABLE ROW LEVEL SECURITY;
+ALTER TABLE quiz_attempts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE knowledge_gaps ENABLE ROW LEVEL SECURITY;
+ALTER TABLE journal_entries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE portfolio_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE pomodoro_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE guild_members ENABLE ROW LEVEL SECURITY;
+ALTER TABLE guild_messages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_badges ENABLE ROW LEVEL SECURITY;
+ALTER TABLE subscriptions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE flashcard_decks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE flashcard_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE code_snippets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE user_inventory ENABLE ROW LEVEL SECURITY;
+
+-- Profiles: owner can read, service role can write
+CREATE POLICY "Users can view own profile" ON profiles FOR SELECT USING (auth.uid() = id);
+CREATE POLICY "Service role can insert profiles" ON profiles FOR INSERT WITH CHECK (auth.role() = 'service_role');
+CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "Service role can update profiles" ON profiles FOR UPDATE USING (auth.role() = 'service_role');
+
+-- Test scores: owner only
+CREATE POLICY "Users can view own test scores" ON test_scores FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own test scores" ON test_scores FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- User skill progress: owner only
+CREATE POLICY "Users can view own skill progress" ON user_skill_progress FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own skill progress" ON user_skill_progress FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own skill progress" ON user_skill_progress FOR UPDATE USING (auth.uid() = user_id);
+
+-- Quiz attempts: owner only
+CREATE POLICY "Users can view own quiz attempts" ON quiz_attempts FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own quiz attempts" ON quiz_attempts FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Knowledge gaps: owner only
+CREATE POLICY "Users can view own knowledge gaps" ON knowledge_gaps FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own knowledge gaps" ON knowledge_gaps FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own knowledge gaps" ON knowledge_gaps FOR UPDATE USING (auth.uid() = user_id);
+
+-- Journal entries: owner only
+CREATE POLICY "Users can view own journal entries" ON journal_entries FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own journal entries" ON journal_entries FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own journal entries" ON journal_entries FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete own journal entries" ON journal_entries FOR DELETE USING (auth.uid() = user_id);
+
+-- Portfolio items: owner only
+CREATE POLICY "Users can view own portfolio items" ON portfolio_items FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own portfolio items" ON portfolio_items FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own portfolio items" ON portfolio_items FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete own portfolio items" ON portfolio_items FOR DELETE USING (auth.uid() = user_id);
+
+-- Pomodoro sessions: owner only
+CREATE POLICY "Users can view own pomodoro sessions" ON pomodoro_sessions FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own pomodoro sessions" ON pomodoro_sessions FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own pomodoro sessions" ON pomodoro_sessions FOR UPDATE USING (auth.uid() = user_id);
+
+-- Guild members: member can view, service role can insert
+CREATE POLICY "Guild members can view membership" ON guild_members FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Service role can insert guild members" ON guild_members FOR INSERT WITH CHECK (auth.role() = 'service_role');
+CREATE POLICY "Users can leave guild" ON guild_members FOR DELETE USING (auth.uid() = user_id);
+
+-- Guild messages: guild members can view, members can insert
+CREATE POLICY "Guild members can view messages" ON guild_messages FOR SELECT USING (
+  EXISTS (SELECT 1 FROM guild_members WHERE guild_messages.guild_id = guild_id AND user_id = auth.uid())
+);
+CREATE POLICY "Guild members can insert messages" ON guild_messages FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM guild_members WHERE guild_id = guild_id AND user_id = auth.uid())
+);
+
+-- User badges: owner only
+CREATE POLICY "Users can view own badges" ON user_badges FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Service role can insert user badges" ON user_badges FOR INSERT WITH CHECK (auth.role() = 'service_role');
+
+-- Subscriptions: owner only
+CREATE POLICY "Users can view own subscriptions" ON subscriptions FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Service role can insert subscriptions" ON subscriptions FOR INSERT WITH CHECK (auth.role() = 'service_role');
+
+-- Flashcard decks: owner can view/edit, public decks readable by all
+CREATE POLICY "Users can view own flashcard decks" ON flashcard_decks FOR SELECT USING (auth.uid() = user_id OR is_public = true);
+CREATE POLICY "Users can insert own flashcard decks" ON flashcard_decks FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own flashcard decks" ON flashcard_decks FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete own flashcard decks" ON flashcard_decks FOR DELETE USING (auth.uid() = user_id);
+
+-- Flashcard items: owner can view/edit
+CREATE POLICY "Users can view flashcard items from own decks" ON flashcard_items FOR SELECT USING (
+  EXISTS (SELECT 1 FROM flashcard_decks WHERE flashcard_items.deck_id = id AND user_id = auth.uid())
+);
+CREATE POLICY "Users can insert flashcard items to own decks" ON flashcard_items FOR INSERT WITH CHECK (
+  EXISTS (SELECT 1 FROM flashcard_decks WHERE flashcard_items.deck_id = id AND user_id = auth.uid())
+);
+CREATE POLICY "Users can update flashcard items in own decks" ON flashcard_items FOR UPDATE USING (
+  EXISTS (SELECT 1 FROM flashcard_decks WHERE flashcard_items.deck_id = id AND user_id = auth.uid())
+);
+CREATE POLICY "Users can delete flashcard items from own decks" ON flashcard_items FOR DELETE USING (
+  EXISTS (SELECT 1 FROM flashcard_decks WHERE flashcard_items.deck_id = id AND user_id = auth.uid())
+);
+
+-- Code snippets: owner can view/edit, public snippets readable by all
+CREATE POLICY "Users can view own code snippets" ON code_snippets FOR SELECT USING (auth.uid() = user_id OR is_public = true);
+CREATE POLICY "Users can insert own code snippets" ON code_snippets FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own code snippets" ON code_snippets FOR UPDATE USING (auth.uid() = user_id);
+CREATE POLICY "Users can delete own code snippets" ON code_snippets FOR DELETE USING (auth.uid() = user_id);
+
+-- User inventory: owner only
+CREATE POLICY "Users can view own inventory" ON user_inventory FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Service role can insert inventory items" ON user_inventory FOR INSERT WITH CHECK (auth.role() = 'service_role');
+CREATE POLICY "Users can update own inventory" ON user_inventory FOR UPDATE USING (auth.uid() = user_id);
+
+-- RPC function to purchase vault item
+CREATE OR REPLACE FUNCTION purchase_vault_item(user_uuid UUID, item_uuid UUID)
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+  -- Check user balance
+  IF (SELECT vault_balance FROM profiles WHERE id = user_uuid) < (SELECT cost FROM vault_items WHERE id = item_uuid) THEN
+    RAISE EXCEPTION 'Insufficient vault balance';
+  END IF;
+
+  -- Deduct balance
+  UPDATE profiles SET vault_balance = vault_balance - (SELECT cost FROM vault_items WHERE id = item_uuid) WHERE id = user_uuid;
+
+  -- Add to inventory
+  INSERT INTO user_inventory (user_id, vault_item_id, purchased_at, is_equipped)
+  VALUES (user_uuid, item_uuid, NOW(), false);
+
+  -- Add XP
+  UPDATE profiles SET xp_total = xp_total + 5 WHERE id = user_uuid;
+END;
+$$;
+
 -- Updated at trigger
-CREATE OR REPLACE FUNCTION public.handle_updated_at()
+CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
   NEW.updated_at = NOW();
@@ -270,342 +383,14 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER set_profiles_updated_at
-  BEFORE UPDATE ON public.profiles
-  FOR EACH ROW
-  EXECUTE FUNCTION public.handle_updated_at();
+CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON profiles
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER set_journal_entries_updated_at
-  BEFORE UPDATE ON public.journal_entries
-  FOR EACH ROW
-  EXECUTE FUNCTION public.handle_updated_at();
+CREATE TRIGGER update_journal_entries_updated_at BEFORE UPDATE ON journal_entries
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER set_flashcard_decks_updated_at
-  BEFORE UPDATE ON public.flashcard_decks
-  FOR EACH ROW
-  EXECUTE FUNCTION public.handle_updated_at();
+CREATE TRIGGER update_flashcard_decks_updated_at BEFORE UPDATE ON flashcard_decks
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
-CREATE TRIGGER set_code_snippets_updated_at
-  BEFORE UPDATE ON public.code_snippets
-  FOR EACH ROW
-  EXECUTE FUNCTION public.handle_updated_at();
-
--- Enable RLS
-ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.test_scores ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.skill_nodes ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.user_skill_progress ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.quiz_attempts ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.knowledge_gaps ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.journal_entries ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.portfolio_items ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.pomodoro_sessions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.guilds ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.guild_members ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.guild_messages ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.badges ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.user_badges ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.subscriptions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.contact_messages ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.flashcard_decks ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.flashcard_items ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.code_snippets ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.vault_items ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.user_inventory ENABLE ROW LEVEL SECURITY;
-
--- Owner-only RLS policies
-CREATE POLICY "Owner can do everything on profiles"
-  ON public.profiles
-  FOR ALL
-  TO authenticated
-  USING (id = auth.uid())
-  WITH CHECK (id = auth.uid());
-
-CREATE POLICY "Owner can do everything on test_scores"
-  ON public.test_scores
-  FOR ALL
-  TO authenticated
-  USING (user_id = auth.uid())
-  WITH CHECK (user_id = auth.uid());
-
-CREATE POLICY "Everyone can read skill_nodes"
-  ON public.skill_nodes
-  FOR SELECT
-  TO authenticated
-  USING (true);
-
-CREATE POLICY "Owner can do everything on user_skill_progress"
-  ON public.user_skill_progress
-  FOR ALL
-  TO authenticated
-  USING (user_id = auth.uid())
-  WITH CHECK (user_id = auth.uid());
-
-CREATE POLICY "Owner can do everything on quiz_attempts"
-  ON public.quiz_attempts
-  FOR ALL
-  TO authenticated
-  USING (user_id = auth.uid())
-  WITH CHECK (user_id = auth.uid());
-
-CREATE POLICY "Owner can do everything on knowledge_gaps"
-  ON public.knowledge_gaps
-  FOR ALL
-  TO authenticated
-  USING (user_id = auth.uid())
-  WITH CHECK (user_id = auth.uid());
-
-CREATE POLICY "Owner can do everything on journal_entries"
-  ON public.journal_entries
-  FOR ALL
-  TO authenticated
-  USING (user_id = auth.uid())
-  WITH CHECK (user_id = auth.uid());
-
-CREATE POLICY "Owner can do everything on portfolio_items"
-  ON public.portfolio_items
-  FOR ALL
-  TO authenticated
-  USING (user_id = auth.uid())
-  WITH CHECK (user_id = auth.uid());
-
-CREATE POLICY "Owner can do everything on pomodoro_sessions"
-  ON public.pomodoro_sessions
-  FOR ALL
-  TO authenticated
-  USING (user_id = auth.uid())
-  WITH CHECK (user_id = auth.uid());
-
-CREATE POLICY "Everyone can read guilds"
-  ON public.guilds
-  FOR SELECT
-  TO authenticated
-  USING (true);
-
-CREATE POLICY "Owner can do everything on guilds"
-  ON public.guilds
-  FOR ALL
-  TO authenticated
-  USING (created_by = auth.uid())
-  WITH CHECK (created_by = auth.uid());
-
-CREATE POLICY "Owner can do everything on guild_members"
-  ON public.guild_members
-  FOR ALL
-  TO authenticated
-  USING (user_id = auth.uid())
-  WITH CHECK (user_id = auth.uid());
-
-CREATE POLICY "Guild members can read guild_messages"
-  ON public.guild_messages
-  FOR SELECT
-  TO authenticated
-  USING (EXISTS (
-    SELECT 1 FROM public.guild_members
-    WHERE guild_messages.guild_id = guild_members.guild_id
-    AND guild_members.user_id = auth.uid()
-  ));
-
-CREATE POLICY "Guild members can insert guild_messages"
-  ON public.guild_messages
-  FOR INSERT
-  TO authenticated
-  WITH CHECK (EXISTS (
-    SELECT 1 FROM public.guild_members
-    WHERE NEW.guild_id = guild_members.guild_id
-    AND guild_members.user_id = auth.uid()
-  ));
-
-CREATE POLICY "Everyone can read badges"
-  ON public.badges
-  FOR SELECT
-  TO authenticated
-  USING (true);
-
-CREATE POLICY "Owner can do everything on user_badges"
-  ON public.user_badges
-  FOR ALL
-  TO authenticated
-  USING (user_id = auth.uid())
-  WITH CHECK (user_id = auth.uid());
-
-CREATE POLICY "Owner can do everything on subscriptions"
-  ON public.subscriptions
-  FOR ALL
-  TO authenticated
-  USING (user_id = auth.uid())
-  WITH CHECK (user_id = auth.uid());
-
-CREATE POLICY "Anyone can insert contact_messages"
-  ON public.contact_messages
-  FOR INSERT
-  TO anon, authenticated
-  WITH CHECK (true);
-
-CREATE POLICY "Admin can read contact_messages"
-  ON public.contact_messages
-  FOR SELECT
-  TO authenticated
-  USING (
-    EXISTS (
-      SELECT 1 FROM public.profiles
-      WHERE profiles.id = auth.uid()
-      AND profiles.role = 'admin'
-    )
-  );
-
-CREATE POLICY "Owner can do everything on flashcard_decks"
-  ON public.flashcard_decks
-  FOR ALL
-  TO authenticated
-  USING (user_id = auth.uid())
-  WITH CHECK (user_id = auth.uid());
-
-CREATE POLICY "Everyone can read public flashcard_decks"
-  ON public.flashcard_decks
-  FOR SELECT
-  TO authenticated
-  USING (is_public = true OR user_id = auth.uid());
-
-CREATE POLICY "Owner can do everything on flashcard_items"
-  ON public.flashcard_items
-  FOR ALL
-  TO authenticated
-  USING (EXISTS (
-    SELECT 1 FROM public.flashcard_decks
-    WHERE flashcard_items.deck_id = flashcard_decks.id
-    AND flashcard_decks.user_id = auth.uid()
-  ))
-  WITH CHECK (EXISTS (
-    SELECT 1 FROM public.flashcard_decks
-    WHERE NEW.deck_id = flashcard_decks.id
-    AND flashcard_decks.user_id = auth.uid()
-  ));
-
-CREATE POLICY "Owner can do everything on code_snippets"
-  ON public.code_snippets
-  FOR ALL
-  TO authenticated
-  USING (user_id = auth.uid())
-  WITH CHECK (user_id = auth.uid());
-
-CREATE POLICY "Everyone can read public code_snippets"
-  ON public.code_snippets
-  FOR SELECT
-  TO authenticated
-  USING (is_public = true OR user_id = auth.uid());
-
-CREATE POLICY "Everyone can read vault_items"
-  ON public.vault_items
-  FOR SELECT
-  TO authenticated
-  USING (true);
-
-CREATE POLICY "Owner can do everything on user_inventory"
-  ON public.user_inventory
-  FOR ALL
-  TO authenticated
-  USING (user_id = auth.uid())
-  WITH CHECK (user_id = auth.uid());
-
--- SECURITY DEFINER RPC: purchase_vault_item
-CREATE OR REPLACE FUNCTION public.purchase_vault_item(p_item_id UUID)
-RETURNS JSONB
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public, pg_temp
-AS $$
-DECLARE
-  v_xp_cost INTEGER;
-  v_current_xp INTEGER;
-  v_result JSONB;
-BEGIN
-  -- Get item cost
-  SELECT cost_xp INTO v_xp_cost
-  FROM public.vault_items
-  WHERE id = p_item_id;
-  
-  IF NOT FOUND THEN
-    RETURN jsonb_build_object('success', false, 'error', 'Item not found');
-  END IF;
-  
-  -- Get user's current XP
-  SELECT xp_total INTO v_current_xp
-  FROM public.profiles
-  WHERE id = auth.uid();
-  
-  IF NOT FOUND THEN
-    RETURN jsonb_build_object('success', false, 'error', 'User not found');
-  END IF;
-  
-  -- Check if user has enough XP
-  IF v_current_xp < v_xp_cost THEN
-    RETURN jsonb_build_object('success', false, 'error', 'Insufficient XP');
-  END IF;
-  
-  -- Deduct XP and add to inventory
-  UPDATE public.profiles
-  SET xp_total = xp_total - v_xp_cost
-  WHERE id = auth.uid();
-  
-  INSERT INTO public.user_inventory (user_id, item_id, purchased_at)
-  VALUES (auth.uid(), p_item_id, NOW())
-  ON CONFLICT (user_id, item_id) DO NOTHING;
-  
-  RETURN jsonb_build_object('success', true, 'new_xp', v_current_xp - v_xp_cost);
-END;
-$$;
-
--- Helper function: add XP ( SECURITY DEFINER for gamification )
-CREATE OR REPLACE FUNCTION public.add_user_xp(p_user_id UUID, p_amount INTEGER)
-RETURNS VOID
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public, pg_temp
-AS $$
-BEGIN
-  UPDATE public.profiles
-  SET xp_total = xp_total + p_amount
-  WHERE id = p_user_id;
-  
-  -- Check for level up (simple threshold: every 1000 XP = 1 level)
-  UPDATE public.profiles
-  SET level = FLOOR(xp_total / 1000) + 1
-  WHERE id = p_user_id
-  AND xp_total >= (level * 1000);
-END;
-$$;
-
--- Helper function: increment streak
-CREATE OR REPLACE FUNCTION public.increment_streak(p_user_id UUID)
-RETURNS VOID
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public, pg_temp
-AS $$
-DECLARE
-  v_last_active TIMESTAMPTZ;
-  v_today DATE := CURRENT_DATE;
-BEGIN
-  SELECT last_active_at INTO v_last_active
-  FROM public.profiles
-  WHERE id = p_user_id;
-  
-  IF v_last_active IS NULL OR v_last_active < v_today - INTERVAL '1 day' THEN
-    -- Reset streak (more than 1 day gap)
-    UPDATE public.profiles
-    SET streak_count = 1, last_active_at = NOW()
-    WHERE id = p_user_id;
-  ELSIF v_last_active >= v_today THEN
-    -- Already active today, no change
-    UPDATE public.profiles
-    SET last_active_at = NOW()
-    WHERE id = p_user_id;
-  ELSE
-    -- Consecutive day, increment
-    UPDATE public.profiles
-    SET streak_count = streak_count + 1, last_active_at = NOW()
-    WHERE id = p_user_id;
-  END IF;
-END;
-$$;
+CREATE TRIGGER update_code_snippets_updated_at BEFORE UPDATE ON code_snippets
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

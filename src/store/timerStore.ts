@@ -1,39 +1,42 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 
 interface TimerState {
-  setupStartedAt: string | null;
-  pomodoroSecondsLeft: number;
-  pomodoroRunning: boolean;
-  lastActivityAt: string | null;
-  startSetupCountdown: () => void;
-  startPomodoro: (duration: number) => void;
-  stopPomodoro: () => void;
-  updateActivityTimer: () => void;
-  devUnlock: () => void;
-  reset: () => void;
+  setupStartedAt: number | null
+  pomodoroSecondsLeft: number
+  pomodoroRunning: boolean
+  lastActivityAt: number | null
+  startSetupCountdown: () => void
+  devUnlock: () => void
+  resetActivityTimer: () => void
+  setPomodoroRunning: (running: boolean) => void
+  setPomodoroSecondsLeft: (seconds: number) => void
 }
 
-const initialState = {
-  setupStartedAt: null,
-  pomodoroSecondsLeft: 25 * 60, // 25 minutes default
-  pomodoroRunning: false,
-  lastActivityAt: null,
-};
-
-export const useTimerStore = create<TimerState>()(
+export const timerStore = create<TimerState>()(
   persist(
     (set) => ({
-      ...initialState,
-      startSetupCountdown: () => set({ setupStartedAt: new Date().toISOString() }),
-      startPomodoro: (duration) => set({ pomodoroSecondsLeft: duration, pomodoroRunning: true }),
-      stopPomodoro: () => set({ pomodoroRunning: false }),
-      updateActivityTimer: () => set({ lastActivityAt: new Date().toISOString() }),
-      devUnlock: () => set({ setupStartedAt: new Date(Date.now() - 30 * 1000).toISOString() }), // Pretend 30s passed
-      reset: () => set(initialState),
+      setupStartedAt: null,
+      pomodoroSecondsLeft: 25 * 60, // 25 minutes
+      pomodoroRunning: false,
+      lastActivityAt: Date.now(),
+
+      startSetupCountdown: () => set({ setupStartedAt: Date.now() }),
+
+      devUnlock: () => {
+        if (import.meta.env.VITE_ENABLE_DEV_UNLOCK === 'true') {
+          set({ setupStartedAt: 0 })
+        }
+      },
+
+      resetActivityTimer: () => set({ lastActivityAt: Date.now() }),
+
+      setPomodoroRunning: (running) => set({ pomodoroRunning: running }),
+
+      setPomodoroSecondsLeft: (seconds) => set({ pomodoroSecondsLeft: seconds }),
     }),
     {
       name: 'academica-timer',
     }
   )
-);
+)

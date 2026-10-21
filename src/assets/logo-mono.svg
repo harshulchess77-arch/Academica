@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" fill="none">
+  <!-- Book base - flat cobalt -->
+  <path d="M30 70 L100 60 L170 70 L170 150 L100 140 L30 150 Z" fill="#1A237E" />
+  <path d="M30 70 L100 60 L100 140 L30 150 Z" fill="#1A237E" opacity="0.8" />
+  <path d="M100 60 L170 70 L170 150 L100 140 Z" fill="#1A237E" opacity="0.6" />
+
+  <!-- Book spine -->
+  <line x1="100" y1="60" x2="100" y2="140" stroke="#6200EA" stroke-width="2" />
+
+  <!-- Circuit tree from spine - simple lines -->
+  <g stroke="#00BFA5" stroke-width="2" fill="none">
+    <!-- Main trunk -->
+    <path d="M100 65 Q100 85 100 100" />
+    <!-- Branches -->
+    <path d="M100 75 Q85 75 80 70" />
+    <path d="M100 75 Q115 75 120 70" />
+    <path d="M100 85 Q90 85 85 82" />
+    <path d="M100 85 Q110 85 115 82" />
+    <path d="M100 95 Q85 95 80 90" />
+    <path d="M100 95 Q115 95 120 90" />
+    <!-- Circuit nodes -->
+    <circle cx="80" cy="70" r="3" fill="#00BFA5" />
+    <circle cx="120" cy="70" r="3" fill="#00BFA5" />
+    <circle cx="85" cy="82" r="2.5" fill="#00BFA5" />
+    <circle cx="115" cy="82" r="2.5" fill="#00BFA5" />
+    <circle cx="80" cy="90" r="3" fill="#00BFA5" />
+    <circle cx="120" cy="90" r="3" fill="#00BFA5" />
+  </g>
+
+  <!-- Flame on top - simplified -->
+  <path d="M100 65 Q90 50 100 30 Q110 50 100 65" fill="#FFC107" />
+  <path d="M100 55 Q95 45 100 35 Q105 45 100 55" fill="#FFC107" opacity="0.7" />
+</svg>

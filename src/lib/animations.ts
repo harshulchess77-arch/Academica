@@ -1,211 +1,153 @@
-import anime from 'animejs';
-import { useAccessibilityStore } from '../store';
+import anime from 'animejs'
+import { accessibilityStore } from '@/store'
 
-// Respect reduced motion preference
-const shouldAnimate = (): boolean => {
-  const reduceMotion = useAccessibilityStore.getState().reduceMotion;
-  const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  return !reduceMotion && !prefersReducedMotion;
-};
+export function createEmblemEntrance() {
+  if (accessibilityStore.getState().reduceMotion) {
+    return { play: () => {}, finished: Promise.resolve() }
+  }
 
-// Emblem entrance animation (flame flicker + circuit trace draw-on)
-export const createEmblemEntrance = (element: HTMLElement): anime.AnimeInstance | null => {
-  if (!shouldAnimate()) return null;
-
-  const tl = anime.timeline({
-    targets: element,
+  const timeline = anime.timeline({
     easing: 'easeOutExpo',
     duration: 1000,
-  });
+  })
 
-  // Draw circuit traces
-  tl.add({
-    targets: '.circuit-trace',
-    strokeDashoffset: [anime.setDashoffset, 0],
-    easing: 'easeInOutSine',
-    duration: 1500,
-    delay: anime.stagger(100),
-  });
-
-  // Flame flicker effect
-  tl.add(
-    {
-      targets: '.flame',
-      opacity: [0.8, 1, 0.9, 1],
-      duration: 200,
-      easing: 'easeInOutQuad',
-      loop: 3,
-    },
-    '-=1200'
-  );
-
-  // Scale in the book
-  tl.add(
-    {
-      targets: '.book',
-      scale: [0, 1],
+  timeline
+    .add({
+      targets: '.emblem-book',
       opacity: [0, 1],
-      duration: 800,
-      easing: 'easeOutBack',
-    },
-    '-=1000'
-  );
+      scale: [0.8, 1],
+      rotateY: [-90, 0],
+    })
+    .add(
+      {
+        targets: '.emblem-circuit',
+        strokeDashoffset: [anime.setDashoffset, 0],
+        opacity: [0, 1],
+      },
+      '-=600'
+    )
+    .add(
+      {
+        targets: '.emblem-flame',
+        opacity: [0, 1],
+        scale: [0.5, 1],
+        translateY: [20, 0],
+      },
+      '-=400'
+    )
+    .add(
+      {
+        targets: '.emblem-flame',
+        scale: [
+          { value: 1.1, duration: 200 },
+          { value: 1, duration: 200 },
+        ],
+        repeat: 2,
+      },
+      '-=800'
+    )
 
-  return tl;
-};
+  return timeline
+}
 
-// Skill node unlock pulse cascade
-export const createSkillNodeUnlock = (element: HTMLElement): anime.AnimeInstance | null => {
-  if (!shouldAnimate()) return null;
+export function createSkillNodeUnlock(targetEl: HTMLElement) {
+  if (accessibilityStore.getState().reduceMotion) {
+    targetEl.style.opacity = '1'
+    return { play: () => {}, finished: Promise.resolve() }
+  }
 
   return anime({
-    targets: element,
-    scale: [1, 1.2, 1],
-    opacity: [1, 0.8, 1],
+    targets: targetEl,
+    scale: [0.8, 1.2, 1],
+    opacity: [0.5, 1],
     boxShadow: [
-      '0 0 0 rgba(255, 193, 7, 0)',
-      '0 0 20px rgba(255, 193, 7, 0.8)',
-      '0 0 0 rgba(255, 193, 7, 0)',
+      '0 0 0 rgba(0, 191, 165, 0)',
+      '0 0 20px rgba(0, 191, 165, 0.5)',
+      '0 0 0 rgba(0, 191, 165, 0)',
     ],
     duration: 600,
     easing: 'easeOutElastic(1, .8)',
-  });
-};
+  })
+}
 
-// Digit flip animation for countdown
-export const createDigitFlip = (
-  element: HTMLElement,
+export function createDigitFlip(
+  el: HTMLElement,
   from: number,
   to: number
-): anime.AnimeInstance | null => {
-  if (!shouldAnimate()) {
-    element.textContent = String(to);
-    return null;
+) {
+  if (accessibilityStore.getState().reduceMotion) {
+    el.textContent = to.toString()
+    return { play: () => {}, finished: Promise.resolve() }
   }
 
   return anime({
-    targets: element,
+    targets: el,
     innerHTML: [from, to],
     round: 1,
+    easing: 'easeInOutQuad',
     duration: 500,
-    easing: 'easeOutQuad',
-  });
-};
+  })
+}
 
-// Spotlight movement easing between walkthrough targets
-export const createSpotlightMove = (
+export function createSpotlightMove(
   fromRect: DOMRect,
-  toRect: DOMRect,
-  element: HTMLElement
-): anime.AnimeInstance | null => {
-  if (!shouldAnimate()) return null;
+  toRect: DOMRect
+) {
+  if (accessibilityStore.getState().reduceMotion) {
+    return { play: () => {}, finished: Promise.resolve() }
+  }
+
+  const deltaX = toRect.left - fromRect.left + (toRect.width - fromRect.width) / 2
+  const deltaY = toRect.top - fromRect.top + (toRect.height - fromRect.height) / 2
 
   return anime({
-    targets: element,
-    left: [fromRect.left, toRect.left],
-    top: [fromRect.top, toRect.top],
+    targets: '.spotlight-overlay',
+    translateX: deltaX,
+    translateY: deltaY,
     width: [fromRect.width, toRect.width],
     height: [fromRect.height, toRect.height],
-    duration: 400,
+    duration: 500,
     easing: 'easeInOutCubic',
-  });
-};
+  })
+}
 
-// Confetti-like celebration burst
-export const createCelebrationBurst = (element: HTMLElement): anime.AnimeInstance | null => {
-  if (!shouldAnimate()) return null;
+export function createConfettiBurst(x: number, y: number) {
+  if (accessibilityStore.getState().reduceMotion) {
+    return
+  }
 
-  const particles = Array.from({ length: 20 }, () => {
-    const el = document.createElement('div');
-    el.className = 'particle';
-    el.style.cssText = `
-      position: absolute;
+  const particleCount = 50
+  const colors = ['#FFC107', '#6200EA', '#00BFA5', '#1A237E']
+
+  for (let i = 0; i < particleCount; i++) {
+    const particle = document.createElement('div')
+    particle.style.cssText = `
+      position: fixed;
       width: 8px;
       height: 8px;
-      background: ${['#FFC107', '#6200EA', '#00BFA5', '#1A237E'][Math.floor(Math.random() * 4)]};
-      border-radius: 50%;
-      left: 50%;
-      top: 50%;
-    `;
-    element.appendChild(el);
-    return el;
-  });
+      background: ${colors[Math.floor(Math.random() * colors.length)]};
+      left: ${x}px;
+      top: ${y}px;
+      pointer-events: none;
+      z-index: 9999;
+      border-radius: 2px;
+    `
+    document.body.appendChild(particle)
 
-  const tl = anime.timeline({
-    complete: () => {
-      particles.forEach((p) => p.remove());
-    },
-  });
+    const angle = (Math.PI * 2 * i) / particleCount
+    const velocity = 100 + Math.random() * 100
+    const tx = Math.cos(angle) * velocity
+    const ty = Math.sin(angle) * velocity
 
-  tl.add({
-    targets: particles,
-    translateX: () => anime.random(-100, 100),
-    translateY: () => anime.random(-100, 100),
-    scale: [1, 0],
-    opacity: [1, 0],
-    duration: 1000,
-    easing: 'easeOutExpo',
-    delay: anime.stagger(20),
-  });
-
-  return tl;
-};
-
-// Progress bar fill animation
-export const createProgressFill = (element: HTMLElement, from: number, to: number): anime.AnimeInstance | null => {
-  if (!shouldAnimate()) {
-    element.style.width = `${to}%`;
-    return null;
+    anime({
+      targets: particle,
+      translateX: tx,
+      translateY: ty,
+      opacity: [1, 0],
+      rotate: [0, 720],
+      duration: 1000 + Math.random() * 500,
+      easing: 'easeOutExpo',
+      complete: () => particle.remove(),
+    })
   }
-
-  return anime({
-    targets: element,
-    width: [`${from}%`, `${to}%`],
-    duration: 800,
-    easing: 'easeOutCubic',
-  });
-};
-
-// Staggered list reveal
-export const createStaggeredReveal = (elements: HTMLElement[]): anime.AnimeInstance | null => {
-  if (!shouldAnimate()) return null;
-
-  return anime({
-    targets: elements,
-    opacity: [0, 1],
-    translateY: [20, 0],
-    duration: 400,
-    easing: 'easeOutQuad',
-    delay: anime.stagger(50),
-  });
-};
-
-// XP counter animation
-export const createXPCounter = (element: HTMLElement, from: number, to: number): anime.AnimeInstance | null => {
-  if (!shouldAnimate()) {
-    element.textContent = String(to);
-    return null;
-  }
-
-  return anime({
-    targets: element,
-    innerHTML: [from, to],
-    round: 1,
-    duration: 1500,
-    easing: 'easeOutExpo',
-  });
-};
-
-// Level up flash
-export const createLevelUpFlash = (element: HTMLElement): anime.AnimeInstance | null => {
-  if (!shouldAnimate()) return null;
-
-  return anime({
-    targets: element,
-    scale: [1, 1.5, 1],
-    opacity: [1, 0.5, 1],
-    filter: ['brightness(1)', 'brightness(2)', 'brightness(1)'],
-    duration: 600,
-    easing: 'easeOutElastic(1, .8)',
-  });
-};
+}

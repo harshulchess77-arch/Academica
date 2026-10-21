@@ -1,69 +1,57 @@
-import { supabase } from './supabase';
+import { supabase } from './supabase'
 
-// Privacy-safe analytics - no personal identifiers, only anonymous metrics
-type AnalyticsEvent =
-  | { type: 'page_view'; path: string }
-  | { type: 'feature_use'; feature: string }
-  | { type: 'error'; error: string; context?: string }
-  | { type: 'completion'; item: string; duration?: number }
-  | { type: 'engagement'; action: string; target?: string };
+interface AnalyticsEvent {
+  event_name: string
+  event_properties?: Record<string, unknown>
+  user_id?: string
+}
 
-const isDevelopment = import.meta.env.VITE_APP_ENV === 'development';
-
-export const logEvent = async (event: AnalyticsEvent): Promise<void> => {
-  if (isDevelopment) {
-    console.log('[Analytics]', event);
-    return;
-  }
-
+export async function trackEvent(eventName: string, properties?: Record<string, unknown>) {
   try {
-    // In production, send to a privacy-compliant analytics service
-    // For now, we'll use error_logs for error events only
-    if (event.type === 'error') {
-      await supabase.from('error_logs').insert({
-        user_id: null,
-        message: event.error,
-        stack: event.context,
-        route: window.location.pathname,
-      });
+    const { data: { user } } = await supabase.auth.getUser()
+
+    const event: AnalyticsEvent = {
+      event_name: eventName,
+      event_properties: properties,
+      user_id: user?.id,
     }
+
+    // In production, this would send to a privacy-first analytics service
+    // For now, we'll log to console in development
+    if (import.meta.env.DEV) {
+      console.log('[Analytics]', event)
+    }
+
+    // Future: Send to Supabase edge function or privacy-compliant analytics
   } catch (error) {
-    console.error('Analytics logging failed:', error);
-    // Don't throw - analytics failures shouldn't break the app
+    console.error('Analytics tracking error:', error)
   }
-};
+}
 
-// Session ID for grouping events (session-local only, no persistence)
-let sessionId: string | null = null;
+export async function trackPageView(page: string) {
+  await trackEvent('page_view', { page })
+}
 
-const getSessionId = (): string => {
-  if (!sessionId) {
-    sessionId = crypto.randomUUID();
-  }
-  return sessionId;
-};
+export async function trackSkillCompletion(skillId: string, subject: string) {
+  await trackEvent('skill_completed', { skill_id: skillId, subject })
+}
 
-// Page view tracking
-export const trackPageView = (path: string): void => {
-  logEvent({ type: 'page_view', path });
-};
+export async function trackQuizAttempt(score: number, total: number, subject: string) {
+  await trackEvent('quiz_attempt', { score, total, subject, percentage: (score / total) * 100 })
+}
 
-// Feature usage tracking
-export const trackFeatureUse = (feature: string): void => {
-  logEvent({ type: 'feature_use', feature });
-};
+export async function trackJournalEntry() {
+  await trackEvent('journal_entry_created')
+}
 
-// Error tracking (without PII)
-export const trackError = (error: string, context?: string): void => {
-  logEvent({ type: 'error', error, context });
-};
+export async function trackPomodoroSession(duration: number, subject?: string) {
+  await trackEvent('pomodoro_session', { duration_seconds: duration, subject })
+}
 
-// Completion tracking
-export const trackCompletion = (item: string, duration?: number): void => {
-  logEvent({ type: 'completion', item, duration });
-};
+export async function trackGuildJoin(guildId: string) {
+  await trackEvent('guild_joined', { guild_id: guildId })
+}
 
-// Engagement tracking
-export const trackEngagement = (action: string, target?: string): void => {
-  logEvent({ type: 'engagement', action, target });
-};
+export async function trackVaultPurchase(itemId: string, cost: number) {
+  await trackEvent('vault_purchase', { item_id: itemId, cost })
+}

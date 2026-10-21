@@ -1,21 +1,24 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-
-type Locale = 'en' | 'es' | 'fr';
+import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
+import i18n from '@/lib/i18n'
 
 interface LocaleState {
-  locale: Locale;
-  setLocale: (locale: Locale) => void;
+  locale: 'en' | 'es' | 'fr'
+  setLocale: (locale: 'en' | 'es' | 'fr') => void
 }
 
-export const useLocaleStore = create<LocaleState>()(
+export const localeStore = create<LocaleState>()(
   persist(
     (set) => ({
       locale: 'en',
-      setLocale: (locale) => set({ locale }),
+
+      setLocale: (locale) => {
+        set({ locale })
+        i18n.changeLanguage(locale)
+      },
     }),
     {
       name: 'academica-locale',
     }
   )
-);
+)

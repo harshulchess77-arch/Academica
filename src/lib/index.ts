@@ -1,26 +1,6 @@
 // Central exports for all library services
 export { supabase, subscribeToChanges, handleSupabaseError } from './supabase';
 export { geminiClient, GeminiClient } from './gemini';
-export { apiClient } from './apiClient';
-export { authService } from './authService';
-export { gapAnalysisService } from './gapAnalysis';
-export { statsService } from './statsService';
-export { teacherService } from './teacherService';
-export { parentService } from './parentService';
-export { adminService } from './adminService';
-export { onboardingService } from './onboardingService';
-export { notificationService } from './notificationService';
-export { offlineDB } from './offlineDb';
-export {
-  logComplianceEvent,
-  exportUserData,
-  requestAccountDeletion,
-  moderateContent,
-  checkVPN,
-  verifyAge,
-  logParentalConsent,
-  logTermsAcceptance,
-} from './compliance';
 export {
   createEmblemEntrance,
   createSkillNodeUnlock,

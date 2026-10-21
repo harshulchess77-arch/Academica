@@ -1,69 +1,64 @@
-import { useEffect, useState } from 'react';
-import type { OfflineAction } from '../types';
+import { useState, useEffect } from 'react'
 
-const OFFLINE_QUEUE_KEY = 'academica-offline-queue';
+interface SyncItem {
+  id: string
+  type: 'journal' | 'quiz' | 'pomodoro'
+  data: any
+  timestamp: number
+}
 
-export const useOfflineSync = () => {
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [queue, setQueue] = useState<OfflineAction[]>([]);
+export function useOfflineSync() {
+  const [isOnline, setIsOnline] = useState(navigator.onLine)
+  const [pendingSync, setPendingSync] = useState<SyncItem[]>([])
 
   useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
+    const handleOnline = () => setIsOnline(true)
+    const handleOffline = () => setIsOnline(false)
 
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
 
-    // Load queue from localStorage
-    const savedQueue = localStorage.getItem(OFFLINE_QUEUE_KEY);
-    if (savedQueue) {
-      try {
-        setQueue(JSON.parse(savedQueue));
-      } catch {
-        setQueue([]);
-      }
-    }
+    // Load pending sync from IndexedDB
+    loadPendingSync()
 
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
-
-  const addToQueue = (action: OfflineAction) => {
-    const newQueue = [...queue, action];
-    setQueue(newQueue);
-    localStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(newQueue));
-  };
-
-  const syncQueue = async () => {
-    if (!isOnline || queue.length === 0) return;
-
-    for (const action of queue) {
-      try {
-        // Sync based on action type
-        if (action.type === 'journal_entry') {
-          // Sync journal entry
-        } else if (action.type === 'pomodoro_session') {
-          // Sync pomodoro session
-        } else if (action.type === 'quiz_attempt') {
-          // Sync quiz attempt
-        }
-      } catch (error) {
-        console.error('Sync failed for action:', action, error);
-      }
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
     }
+  }, [])
 
-    // Clear synced items
-    setQueue([]);
-    localStorage.removeItem(OFFLINE_QUEUE_KEY);
-  };
+  const loadPendingSync = async () => {
+    // In a real implementation, this would load from IndexedDB
+    const stored = localStorage.getItem('academica-sync-queue')
+    if (stored) {
+      setPendingSync(JSON.parse(stored))
+    }
+  }
+
+  const addToSyncQueue = (item: Omit<SyncItem, 'id' | 'timestamp'>) => {
+    const syncItem: SyncItem = {
+      ...item,
+      id: crypto.randomUUID(),
+      timestamp: Date.now(),
+    }
+    const updated = [...pendingSync, syncItem]
+    setPendingSync(updated)
+    localStorage.setItem('academica-sync-queue', JSON.stringify(updated))
+  }
+
+  const flushSyncQueue = async () => {
+    if (!isOnline || pendingSync.length === 0) return
+
+    // In a real implementation, this would sync to Supabase
+    console.log('Flushing sync queue:', pendingSync.length, 'items')
+    setPendingSync([])
+    localStorage.removeItem('academica-sync-queue')
+  }
 
   return {
     isOnline,
-    queue,
-    addToQueue,
-    syncQueue,
-    queueCount: queue.length,
-  };
-};
+    pendingSync,
+    addToSyncQueue,
+    flushSyncQueue,
+  }
+}

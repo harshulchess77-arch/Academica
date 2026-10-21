@@ -1,44 +1,51 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '../lib/supabase';
-import type { Profile } from '../types';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { supabase } from '@/lib/supabase'
+import { authStore } from '@/store'
+import { Database } from '@/types'
 
-export const useProfile = (userId: string) => {
-  return useQuery({
-    queryKey: ['profile', userId],
+type Profile = Database['public']['Tables']['profiles']['Row']
+
+export function useProfile() {
+  const { profile: authProfile } = authStore()
+  const queryClient = useQueryClient()
+
+  const { data: profile, isLoading, error } = useQuery({
+    queryKey: ['profile', authProfile?.id],
     queryFn: async () => {
+      if (!authProfile?.id) return null
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', userId)
-        .single();
-
-      if (error) throw error;
-      return data as Profile;
+        .eq('id', authProfile.id)
+        .single()
+      if (error) throw error
+      return data as Profile
     },
-    enabled: !!userId,
-  });
-};
+    enabled: !!authProfile?.id,
+  })
 
-export const useUpdateProfile = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
+  const updateProfile = useMutation({
     mutationFn: async (updates: Partial<Profile>) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
+      if (!authProfile?.id) throw new Error('No user logged in')
       const { data, error } = await supabase
         .from('profiles')
         .update(updates)
-        .eq('id', user.id)
+        .eq('id', authProfile.id)
         .select()
-        .single();
-
-      if (error) throw error;
-      return data as Profile;
+        .single()
+      if (error) throw error
+      return data as Profile
     },
     onSuccess: (data) => {
-      queryClient.setQueryData(['profile', data.id], data);
+      queryClient.setQueryData(['profile', authProfile?.id], data)
     },
-  });
-};
+  })
+
+  return {
+    profile,
+    isLoading,
+    error,
+    updateProfile: updateProfile.mutate,
+    isUpdating: updateProfile.isPending,
+  }
+}

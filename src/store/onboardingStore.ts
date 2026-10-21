@@ -1,62 +1,44 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import type { OnboardingData, TestScore } from '../types';
+import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
+import type { OnboardingData } from '@/types'
 
-interface OnboardingState {
-  currentStep: number;
-  dob: string;
-  age: number;
-  isMinor: boolean;
-  parentEmail: string | null;
-  country: string;
-  vpnCheckPassed: boolean;
-  grade: string;
-  subjects: string[];
-  testScores: TestScore[];
-  goals: string[];
-  pace: 'relaxed' | 'moderate' | 'intensive';
-  avatarConfig: {
-    avatarUrl: string | null;
-    frameId: string | null;
-    backgroundId: string | null;
-  };
-  selectedTier: 'free' | 'pro' | 'premium';
-  setStep: (step: number) => void;
-  updateField: <K extends keyof OnboardingState>(field: K, value: OnboardingState[K]) => void;
-  reset: () => void;
+interface OnboardingState extends OnboardingData {
+  setStep: (step: number) => void
+  updateField: <K extends keyof OnboardingData>(field: K, value: OnboardingData[K]) => void
+  reset: () => void
 }
 
-const initialState = {
-  currentStep: 0,
-  dob: '',
-  age: 0,
-  isMinor: false,
-  parentEmail: null,
-  country: '',
-  vpnCheckPassed: false,
-  grade: '',
-  subjects: [],
-  testScores: [],
-  goals: [],
-  pace: 'moderate' as const,
-  avatarConfig: {
-    avatarUrl: null,
-    frameId: null,
-    backgroundId: null,
-  },
-  selectedTier: 'free' as const,
-};
+const initialState: OnboardingData = {
+  currentStep: 1,
+  dob: undefined,
+  age: undefined,
+  isMinor: undefined,
+  parentEmail: undefined,
+  country: undefined,
+  vpnCheckPassed: undefined,
+  grade: undefined,
+  subjects: undefined,
+  testScores: undefined,
+  goals: undefined,
+  pace: undefined,
+  avatarConfig: undefined,
+  selectedTier: undefined,
+}
 
-export const useOnboardingStore = create<OnboardingState>()(
+export const onboardingStore = create<OnboardingState>()(
   persist(
     (set) => ({
       ...initialState,
-      setStep: (currentStep) => set({ currentStep }),
-      updateField: (field, value) => set({ [field]: value }),
+
+      setStep: (step) => set({ currentStep: step }),
+
+      updateField: (field, value) =>
+        set((state) => ({ ...state, [field]: value })),
+
       reset: () => set(initialState),
     }),
     {
       name: 'academica-onboarding',
     }
   )
-);
+)

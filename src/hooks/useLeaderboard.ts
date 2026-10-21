@@ -1,88 +1,42 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '../lib/supabase';
-import type { LeaderboardEntry, LeaderboardOptIn } from '../types';
+import { useQuery } from '@tanstack/react-query'
+import { supabase } from '@/lib/supabase'
+import { authStore } from '@/store'
 
-export const useLeaderboard = () => {
-  return useQuery({
+export function useLeaderboard() {
+  const { profile } = authStore()
+
+  const { data: leaderboard, isLoading } = useQuery({
     queryKey: ['leaderboard'],
     queryFn: async () => {
+      // Query the public leaderboard view
       const { data, error } = await supabase
         .from('leaderboard_public_view')
         .select('*')
-        .order('rank', { ascending: true })
-        .limit(50);
-
-      if (error) throw error;
-      return data as LeaderboardEntry[];
+        .order('xp_total', { ascending: false })
+        .limit(50)
+      if (error) throw error
+      return data
     },
-  });
-};
+  })
 
-export const useLeaderboardOptIn = () => {
-  return useQuery({
-    queryKey: ['leaderboard-opt-in'],
+  const { data: myRank } = useQuery({
+    queryKey: ['myLeaderboardRank', profile?.id],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return null;
-
+      if (!profile?.id) return null
       const { data, error } = await supabase
-        .from('leaderboard_opt_ins')
+        .from('leaderboard_public_view')
         .select('*')
-        .eq('user_id', user.id)
-        .single();
-
-      if (error && error.code !== 'PGRST116') throw error;
-      return data as LeaderboardOptIn | null;
+        .eq('user_id', profile.id)
+        .single()
+      if (error) throw error
+      return data
     },
-  });
-};
+    enabled: !!profile?.id,
+  })
 
-export const useOptInLeaderboard = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (displayAlias: string) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
-      const { data, error } = await supabase
-        .from('leaderboard_opt_ins')
-        .upsert({
-          user_id: user.id,
-          display_alias: displayAlias,
-          opted_in: true,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['leaderboard-opt-in'] });
-      queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
-    },
-  });
-};
-
-export const useOptOutLeaderboard = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
-      const { error } = await supabase
-        .from('leaderboard_opt_ins')
-        .update({ opted_in: false })
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['leaderboard-opt-in'] });
-      queryClient.invalidateQueries({ queryKey: ['leaderboard'] });
-    },
-  });
-};
+  return {
+    leaderboard,
+    myRank,
+    isLoading,
+  }
+}

@@ -1,105 +1,60 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '../lib/supabase';
-import type { VaultItem, UserInventory } from '../types';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { supabase } from '@/lib/supabase'
+import { authStore } from '@/store'
+import { Database } from '@/types'
 
-export const useVaultItems = () => {
-  return useQuery({
-    queryKey: ['vault-items'],
+type VaultItem = Database['public']['Tables']['vault_items']['Row']
+type UserInventory = Database['public']['Tables']['user_inventory']['Row']
+
+export function useVault() {
+  const { profile } = authStore()
+  const queryClient = useQueryClient()
+
+  const { data: vaultItems, isLoading: itemsLoading } = useQuery({
+    queryKey: ['vaultItems'],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from('vault_items')
-        .select('*')
-        .order('cost_xp', { ascending: true });
-
-      if (error) throw error;
-      return data as VaultItem[];
+      const { data, error } = await supabase.from('vault_items').select('*')
+      if (error) throw error
+      return data as VaultItem[]
     },
-  });
-};
+  })
 
-export const useUserInventory = () => {
-  return useQuery({
-    queryKey: ['user-inventory'],
+  const { data: inventory, isLoading: inventoryLoading } = useQuery({
+    queryKey: ['userInventory', profile?.id],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
+      if (!profile?.id) return []
       const { data, error } = await supabase
         .from('user_inventory')
         .select('*, vault_items(*)')
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-      return data as UserInventory[];
+        .eq('user_id', profile.id)
+      if (error) throw error
+      return data as (UserInventory & { vault_items: VaultItem })[]
     },
-  });
-};
+    enabled: !!profile?.id,
+  })
 
-export const usePurchaseItem = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
+  const purchaseItem = useMutation({
     mutationFn: async (itemId: string) => {
+      if (!profile?.id) throw new Error('No user logged in')
+      // In production, this would call a SECURITY DEFINER RPC
       const { data, error } = await supabase.rpc('purchase_vault_item', {
+        p_user_id: profile.id,
         p_item_id: itemId,
-      });
-
-      if (error) throw error;
-      return data;
+      })
+      if (error) throw error
+      return data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user-inventory'] });
-      queryClient.invalidateQueries({ queryKey: ['profile'] });
+      queryClient.invalidateQueries({ queryKey: ['userInventory'] })
+      queryClient.invalidateQueries({ queryKey: ['profile'] })
     },
-  });
-};
+  })
 
-export const useEquipItem = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (inventoryId: string) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
-      // Unequip all items of the same type first
-      const { data: inventory } = await supabase
-        .from('user_inventory')
-        .select('*, vault_items(*)')
-        .eq('id', inventoryId)
-        .single();
-
-      if (!inventory) throw new Error('Item not found');
-
-      const itemType = (inventory as any).vault_items?.item_type;
-      if (!itemType) throw new Error('Invalid item');
-
-      const { data: sameTypeItems } = await supabase
-        .from('vault_items')
-        .select('id')
-        .eq('item_type', itemType);
-
-      if (sameTypeItems && sameTypeItems.length > 0) {
-        await supabase
-          .from('user_inventory')
-          .update({ equipped: false })
-          .eq('user_id', user.id)
-          .in('item_id', sameTypeItems.map((i) => i.id));
-      }
-
-      // Equip the selected item
-      const { data, error } = await supabase
-        .from('user_inventory')
-        .update({ equipped: true })
-        .eq('id', inventoryId)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['user-inventory'] });
-    },
-  });
-};
+  return {
+    vaultItems,
+    inventory,
+    isLoading: itemsLoading || inventoryLoading,
+    purchaseItem: purchaseItem.mutate,
+    isPurchasing: purchaseItem.isPending,
+  }
+}

@@ -1,31 +1,33 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
+import type { AccessibilitySettings } from '@/types'
 
-interface AccessibilityState {
-  dyslexicFont: boolean;
-  highContrast: boolean;
-  reduceMotion: boolean;
-  ttsSpeed: number;
-  largerClickTargets: boolean;
-  alwaysShowFocus: boolean;
-  toggle: (setting: keyof AccessibilityState) => void;
-  setTtsSpeed: (speed: number) => void;
+interface AccessibilityState extends AccessibilitySettings {
+  toggle: (setting: keyof AccessibilitySettings) => void
+  setTtsSpeed: (speed: number) => void
 }
 
-export const useAccessibilityStore = create<AccessibilityState>()(
+const initialState: AccessibilitySettings = {
+  dyslexicFont: false,
+  highContrast: false,
+  reduceMotion: false,
+  ttsSpeed: 1,
+  largerClickTargets: false,
+  alwaysShowFocus: false,
+}
+
+export const accessibilityStore = create<AccessibilityState>()(
   persist(
     (set) => ({
-      dyslexicFont: false,
-      highContrast: false,
-      reduceMotion: false,
-      ttsSpeed: 1,
-      largerClickTargets: false,
-      alwaysShowFocus: false,
-      toggle: (setting) => set((state) => ({ [setting]: !state[setting] })),
-      setTtsSpeed: (ttsSpeed) => set({ ttsSpeed }),
+      ...initialState,
+
+      toggle: (setting) =>
+        set((state) => ({ ...state, [setting]: !state[setting] })),
+
+      setTtsSpeed: (speed) => set({ ttsSpeed: speed }),
     }),
     {
       name: 'academica-a11y',
     }
   )
-);
+)

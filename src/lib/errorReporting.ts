@@ -1,54 +1,59 @@
-import { supabase } from './supabase';
+import { supabase } from './supabase'
 
-// Centralized error reporting to Supabase error_logs table
-// Rate-limited to prevent log flooding
-
-const MAX_ERRORS_PER_MINUTE = 10;
-const errorLogTimes: number[] = [];
-
-export const logError = async (
-  error: Error | string,
-  context?: string,
+interface ErrorLog {
+  message: string
+  stack?: string
   route?: string
-): Promise<void> => {
-  // Rate limit check
-  const now = Date.now();
-  const oneMinuteAgo = now - 60000;
+  userId?: string
+}
 
-  // Remove old entries
-  const recentErrors = errorLogTimes.filter((time) => time > oneMinuteAgo);
+let errorCount = 0
+const MAX_ERRORS_PER_MINUTE = 10
+const RESET_INTERVAL = 60000 // 1 minute
 
-  if (recentErrors.length >= MAX_ERRORS_PER_MINUTE) {
-    console.warn('Error rate limit exceeded, skipping log');
-    return;
+export async function logError(error: Error, context?: { route?: string }) {
+  // Rate limiting
+  errorCount++
+  if (errorCount > MAX_ERRORS_PER_MINUTE) {
+    console.warn('Error rate limit exceeded, skipping log')
+    return
   }
 
-  errorLogTimes.push(now);
+  // Reset counter after interval
+  setTimeout(() => {
+    errorCount = 0
+  }, RESET_INTERVAL)
 
   try {
-    const message = typeof error === 'string' ? error : error.message;
-    const stack = typeof error === 'string' ? null : error.stack;
+    const { data: { user } } = await supabase.auth.getUser()
 
-    await supabase.from('error_logs').insert({
-      user_id: null, // Can be null for anonymous errors
-      message,
-      stack,
-      route: route || window.location.pathname,
-    });
-  } catch (e) {
-    console.error('Failed to log error:', e);
-    // Don't throw - logging failures shouldn't cause cascading errors
+    const errorLog: ErrorLog = {
+      message: error.message,
+      stack: error.stack,
+      route: context?.route || window.location.pathname,
+      userId: user?.id,
+    }
+
+    // Log to console in development
+    if (import.meta.env.DEV) {
+      console.error('[Error Reporting]', errorLog)
+    }
+
+    // Send to Supabase error_logs table
+    await supabase.from('error_logs').insert(errorLog)
+  } catch (logError) {
+    console.error('Failed to log error:', logError)
   }
-};
+}
 
-// Error boundary component helper
-export const captureError = (error: Error, errorInfo: unknown): void => {
-  logError(error, JSON.stringify(errorInfo));
-};
+export function setupGlobalErrorHandling() {
+  // Handle unhandled promise rejections
+  window.addEventListener('unhandledrejection', (event) => {
+    logError(new Error(event.reason), { route: window.location.pathname })
+  })
 
-// Performance error tracking
-export const logPerformanceIssue = (metric: string, value: number, threshold: number): void => {
-  if (value > threshold) {
-    logError(`Performance issue: ${metric} exceeded threshold`, `${value}ms > ${threshold}ms`);
-  }
-};
+  // Handle uncaught errors
+  window.addEventListener('error', (event) => {
+    logError(event.error || new Error(event.message), { route: window.location.pathname })
+  })
+}

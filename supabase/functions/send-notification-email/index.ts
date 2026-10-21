@@ -1,94 +1,69 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+
+const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response(null, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      },
+    })
+  }
+
+  if (req.method !== 'POST') {
+    return new Response('Method not allowed', { status: 405 })
   }
 
   try {
-    const { userId, notificationType, title, body } = await req.json();
+    const { userId, notificationType, title, body } = await req.json()
 
-    if (!userId || !notificationType || !title || !body) {
-      return new Response(JSON.stringify({ error: 'Missing required fields' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-
-    // Check if user has had an email in the last 24 hours
-    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-
-    const { data: recentEmails } = await supabaseClient
-      .from('notifications')
-      .select('created_at')
+    // Rate limit: max 1 digest email per user per 24h
+    const { data: recentEmails } = await supabase
+      .from('rate_limit_counters')
+      .select('*')
       .eq('user_id', userId)
-      .gte('created_at', oneDayAgo)
-      .limit(1);
+      .eq('endpoint', 'send-notification-email')
+      .gte('created_at', new Date(Date.now() - 86400000).toISOString())
+      .limit(1)
 
-    if (recentEmails && recentEmails.length > 0) {
-      // Rate limit: skip email if one was sent recently
-      return new Response(JSON.stringify({ sent: false, reason: 'Rate limited' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    if (recentEmails && recentEmails.length >= 1) {
+      return new Response(JSON.stringify({ error: 'Email rate limit exceeded' }), { status: 429 })
     }
 
-    // Create notification
-    const { error: insertError } = await supabaseClient.from('notifications').insert({
+    // Log the rate limit check
+    await supabase.from('rate_limit_counters').insert({
+      user_id: userId,
+      endpoint: 'send-notification-email',
+      created_at: new Date().toISOString(),
+    })
+
+    // Create notification record
+    await supabase.from('notifications').insert({
       user_id: userId,
       type: notificationType,
       title,
       body,
       read: false,
-    });
+      created_at: new Date().toISOString(),
+    })
 
-    if (insertError) {
-      throw insertError;
-    }
+    // In production, integrate with email service (SendGrid, Resend, etc.)
+    // For now, we just log it
+    console.log(`Notification email would be sent to ${userId}: ${title}`)
 
-    // Get user email
-    const { data: profile } = await supabaseClient
-      .from('profiles')
-      .select('email')
-      .eq('id', userId)
-      .single();
-
-    if (!profile) {
-      return new Response(JSON.stringify({ error: 'User not found' }), {
-        status: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    // Send email via Supabase Auth
-    // In production, use a proper email service or Supabase's email hooks
-    const { error: emailError } = await supabaseClient.auth.admin.updateUserById(userId, {
-      email: profile.email,
-    });
-
-    if (emailError) {
-      console.error('Email send error:', emailError);
-      // Don't fail the request if email fails
-    }
-
-    return new Response(JSON.stringify({ sent: true }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(JSON.stringify({ success: true }), {
+      headers: { 'Content-Type': 'application/json' },
+    })
   } catch (error) {
-    console.error('Send notification email error:', error);
     return new Response(JSON.stringify({ error: 'Failed to send notification' }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+      headers: { 'Content-Type': 'application/json' },
+    })
   }
-});
+})

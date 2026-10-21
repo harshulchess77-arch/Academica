@@ -1,95 +1,100 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { GoogleGenerativeAI } from 'https://esm.sh/@google/generative-ai@0.21.0';
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.38.4'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+const geminiApiKey = Deno.env.get('GEMINI_API_KEY')!
+
+const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response(null, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      },
+    })
+  }
+
+  if (req.method !== 'POST') {
+    return new Response('Method not allowed', { status: 405 })
   }
 
   try {
-    const { topic, count = 10 } = await req.json();
-
-    if (!topic) {
-      return new Response(JSON.stringify({ error: 'Topic is required' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
-    );
-
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Authorization required' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const { data: { user }, error: authError } = await supabaseClient.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
-
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Invalid authorization' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    const { topic, subject, userId } = await req.json()
 
     // Rate limit check
-    const { data: rateCheck, error: rateError } = await supabaseClient.rpc('check_rate_limit', {
-      p_endpoint: 'flashcard-generator',
-      p_limit: 30,
-      p_window_minutes: 60,
-    });
+    const { data: recentRequests } = await supabase
+      .from('rate_limit_counters')
+      .select('*')
+      .eq('user_id', userId)
+      .gte('created_at', new Date(Date.now() - 3600000).toISOString())
+      .limit(30)
 
-    if (rateError || !rateCheck?.allowed) {
-      return new Response(
-        JSON.stringify({ error: 'You have reached your hourly AI limit. Try again soon.' }),
-        {
-          status: 429,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        }
-      );
+    if (recentRequests && recentRequests.length >= 30) {
+      return new Response(JSON.stringify({ error: 'Rate limit exceeded' }), { status: 429 })
     }
 
-    const genAI = new GoogleGenerativeAI(Deno.env.get('GEMINI_API_KEY') ?? '');
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
+    // Generate flashcards using Gemini
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${geminiApiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: `Generate 10 flashcards for ${subject} topic: ${topic}.
+              
+Format each flashcard as:
+Q: [question]
+A: [answer]
 
-    const prompt = `Generate ${count} flashcards about "${topic}" for K-12 students. Return ONLY a JSON array with "front" and "back" properties. No other text. Make questions concise and answers clear.`;
+Make questions progressive from basic to advanced.`
+            }]
+          }],
+          generationConfig: {
+            temperature: 0.8,
+            maxOutputTokens: 1000,
+          },
+        }),
+      }
+    )
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const text = response.text();
+    const data = await response.json()
+    const generatedContent = data.candidates[0].content.parts[0].text
 
-    const jsonMatch = text.match(/\[[\s\S]*\]/);
-    if (!jsonMatch) {
-      return new Response(JSON.stringify({ error: 'Invalid response format' }), {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    const flashcards = JSON.parse(jsonMatch[0]);
+    // Parse the generated content into flashcard objects
+    const flashcards = parseFlashcards(generatedContent)
 
     return new Response(JSON.stringify({ flashcards }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+      headers: { 'Content-Type': 'application/json' },
+    })
   } catch (error) {
-    console.error('Flashcard generator error:', error);
-    return new Response(JSON.stringify({ error: 'Failed to generate flashcards' }), {
+    return new Response(JSON.stringify({ error: 'Generation failed' }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+      headers: { 'Content-Type': 'application/json' },
+    })
   }
-});
+})
+
+function parseFlashcards(content: string) {
+  const lines = content.split('\n')
+  const flashcards: { question: string; answer: string }[] = []
+  let currentQuestion = ''
+
+  for (const line of lines) {
+    if (line.startsWith('Q:')) {
+      currentQuestion = line.replace('Q:', '').trim()
+    } else if (line.startsWith('A:') && currentQuestion) {
+      flashcards.push({
+        question: currentQuestion,
+        answer: line.replace('A:', '').trim(),
+      })
+      currentQuestion = ''
+    }
+  }
+
+  return flashcards
+}

@@ -1,95 +1,32 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '../lib/supabase';
-import type { CodeSnippet } from '../types';
+import { useState } from 'react'
 
-export const useCodeSnippets = () => {
-  return useQuery({
-    queryKey: ['code-snippets'],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
+export function usePlayground() {
+  const [code, setCode] = useState('')
+  const [language, setLanguage] = useState('javascript')
+  const [isRunning, setIsRunning] = useState(false)
+  const [output, setOutput] = useState('')
 
-      const { data, error } = await supabase
-        .from('code_snippets')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('updated_at', { ascending: false });
+  const runCode = async () => {
+    setIsRunning(true)
+    try {
+      // This is a mock Python/code execution as specified
+      // In production, this would call an edge function
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+      setOutput('// This is a simulated code execution result\n// Mock execution completed successfully')
+    } catch (error) {
+      setOutput('Error: ' + (error as Error).message)
+    } finally {
+      setIsRunning(false)
+    }
+  }
 
-      if (error) throw error;
-      return data as CodeSnippet[];
-    },
-  });
-};
-
-export const useCreateSnippet = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (snippet: {
-      title: string;
-      language: string;
-      code: string;
-      description: string | null;
-      isPublic: boolean;
-    }) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
-      const { data, error } = await supabase
-        .from('code_snippets')
-        .insert({
-          user_id: user.id,
-          ...snippet,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data as CodeSnippet;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['code-snippets'] });
-    },
-  });
-};
-
-export const useUpdateSnippet = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({
-      id,
-      updates,
-    }: {
-      id: string;
-      updates: Partial<CodeSnippet>;
-    }) => {
-      const { data, error } = await supabase
-        .from('code_snippets')
-        .update(updates)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data as CodeSnippet;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['code-snippets'] });
-    },
-  });
-};
-
-export const useDeleteSnippet = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('code_snippets').delete().eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['code-snippets'] });
-    },
-  });
-};
+  return {
+    code,
+    setCode,
+    language,
+    setLanguage,
+    output,
+    isRunning,
+    runCode,
+  }
+}

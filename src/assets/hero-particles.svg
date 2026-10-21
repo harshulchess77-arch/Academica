@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" fill="none">
+  <defs>
+    <radialGradient id="particleGradient" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#1A237E;stop-opacity:0.8" />
+      <stop offset="100%" style="stop-color:#6200EA;stop-opacity:0" />
+    </radialGradient>
+    <radialGradient id="goldParticle" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#FFC107;stop-opacity:0.6" />
+      <stop offset="100%" style="stop-color:#FFC107;stop-opacity:0" />
+    </radialGradient>
+    <radialGradient id="tealParticle" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#00BFA5;stop-opacity:0.6" />
+      <stop offset="100%" style="stop-color:#00BFA5;stop-opacity:0" />
+    </radialGradient>
+  </defs>
+
+  <!-- Background gradient mesh -->
+  <rect width="800" height="600" fill="#F8FAFC" />
+  <ellipse cx="200" cy="150" rx="300" ry="200" fill="url(#particleGradient)" opacity="0.3" />
+  <ellipse cx="600" cy="450" rx="250" ry="180" fill="url(#particleGradient)" opacity="0.2" />
+
+  <!-- Floating particles - Cobalt -->
+  <circle cx="100" cy="100" r="8" fill="url(#particleGradient)" opacity="0.4" />
+  <circle cx="150" cy="200" r="6" fill="url(#particleGradient)" opacity="0.3" />
+  <circle cx="250" cy="120" r="10" fill="url(#particleGradient)" opacity="0.5" />
+  <circle cx="350" cy="180" r="5" fill="url(#particleGradient)" opacity="0.3" />
+  <circle cx="450" cy="100" r="7" fill="url(#particleGradient)" opacity="0.4" />
+  <circle cx="550" cy="150" r="9" fill="url(#particleGradient)" opacity="0.4" />
+  <circle cx="650" cy="200" r="6" fill="url(#particleGradient)" opacity="0.3" />
+  <circle cx="750" cy="120" r="8" fill="url(#particleGradient)" opacity="0.4" />
+
+  <!-- Floating particles - Gold -->
+  <circle cx="120" cy="300" r="6" fill="url(#goldParticle)" opacity="0.5" />
+  <circle cx="200" cy="350" r="8" fill="url(#goldParticle)" opacity="0.4" />
+  <circle cx="300" cy="280" r="5" fill="url(#goldParticle)" opacity="0.5" />
+  <circle cx="400" cy="320" r="7" fill="url(#goldParticle)" opacity="0.4" />
+  <circle cx="500" cy="290" r="6" fill="url(#goldParticle)" opacity="0.5" />
+  <circle cx="600" cy="340" r="9" fill="url(#goldParticle)" opacity="0.4" />
+  <circle cx="700" cy="310" r="5" fill="url(#goldParticle)" opacity="0.5" />
+
+  <!-- Floating particles - Teal -->
+  <circle cx="80" cy="450" r="7" fill="url(#tealParticle)" opacity="0.5" />
+  <circle cx="180" cy="500" r="5" fill="url(#tealParticle)" opacity="0.4" />
+  <circle cx="280" cy="440" r="8" fill="url(#tealParticle)" opacity="0.5" />
+  <circle cx="380" cy="480" r="6" fill="url(#tealParticle)" opacity="0.4" />
+  <circle cx="480" cy="450" r="7" fill="url(#tealParticle)" opacity="0.5" />
+  <circle cx="580" cy="490" r="5" fill="url(#tealParticle)" opacity="0.4" />
+  <circle cx="680" cy="460" r="8" fill="url(#tealParticle)" opacity="0.5" />
+  <circle cx="780" cy="500" r="6" fill="url(#tealParticle)" opacity="0.4" />
+
+  <!-- Circuit-like lines -->
+  <g stroke="#1A237E" stroke-width="1" opacity="0.1" fill="none">
+    <path d="M50 50 L100 100 L150 80 L200 120" />
+    <path d="M600 50 L650 100 L700 80 L750 120" />
+    <path d="M50 550 L100 500 L150 520 L200 480" />
+    <path d="M600 550 L650 500 L700 520 L750 480" />
+  </g>
+</svg>

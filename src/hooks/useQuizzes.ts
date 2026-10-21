@@ -1,62 +1,51 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '../lib/supabase';
-import type { QuizAttempt } from '../types';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { supabase } from '@/lib/supabase'
+import { authStore } from '@/store'
+import { Database } from '@/types'
 
-export const useQuizzes = (subject?: string) => {
-  return useQuery({
-    queryKey: ['quizzes', subject],
+type QuizAttempt = Database['public']['Tables']['quiz_attempts']['Row']
+
+export function useQuizzes() {
+  const { profile } = authStore()
+  const queryClient = useQueryClient()
+
+  const { data: attempts, isLoading } = useQuery({
+    queryKey: ['quizAttempts', profile?.id],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
+      if (!profile?.id) return []
       const { data, error } = await supabase
         .from('quiz_attempts')
         .select('*')
-        .eq('user_id', user.id)
-        .eq('subject', subject || 'math')
-        .order('completed_at', { ascending: false });
-
-      if (error) throw error;
-      return data as QuizAttempt[];
+        .eq('user_id', profile.id)
+        .order('completed_at', { ascending: false })
+      if (error) throw error
+      return data as QuizAttempt[]
     },
-  });
-};
+    enabled: !!profile?.id,
+  })
 
-export const useSubmitQuiz = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({
-      subject,
-      score,
-      totalQuestions,
-    }: {
-      subject: string;
-      score: number;
-      totalQuestions: number;
-    }) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
+  const submitQuiz = useMutation({
+    mutationFn: async (quizData: Omit<QuizAttempt, 'id' | 'completed_at'>) => {
       const { data, error } = await supabase
         .from('quiz_attempts')
         .insert({
-          user_id: user.id,
-          subject,
-          score,
-          total_questions: totalQuestions,
+          ...quizData,
           completed_at: new Date().toISOString(),
         })
         .select()
-        .single();
+        .single()
+      if (error) throw error
+      return data as QuizAttempt
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['quizAttempts'] })
+    },
+  })
 
-      if (error) throw error;
-      return data as QuizAttempt;
-    },
-    onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['quizzes', data.subject] });
-      // Award XP for quiz completion
-      queryClient.invalidateQueries({ queryKey: ['profile'] });
-    },
-  });
-};
+  return {
+    attempts,
+    isLoading,
+    submitQuiz: submitQuiz.mutate,
+    isSubmitting: submitQuiz.isPending,
+  }
+}

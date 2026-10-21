@@ -1,46 +1,39 @@
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response(null, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      },
+    })
+  }
+
+  if (req.method !== 'POST') {
+    return new Response('Method not allowed', { status: 405 })
   }
 
   try {
-    const { ip } = await req.json();
-
-    if (!ip) {
-      return new Response(JSON.stringify({ error: 'IP address is required' }), {
-        status: 400,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
+    const { ipAddress } = await req.json()
 
     // Simple VPN/proxy detection logic
-    // In production, use a proper IP intelligence service
-    const vpnPatterns = [
-      'vpn',
-      'proxy',
-      'hosting',
-      'datacenter',
-      'cloud',
-    ];
+    // In production, integrate with a real IP intelligence service
+    const vpnDetected = await detectVPN(ipAddress)
 
-    // This is a simplified check - in production, integrate with an IP geolocation/VPN detection API
-    const isVpn = false; // Default to false for demo purposes
-
-    return new Response(JSON.stringify({ isVpn, ip }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    return new Response(JSON.stringify({ vpnDetected }), {
+      headers: { 'Content-Type': 'application/json' },
+    })
   } catch (error) {
-    console.error('VPN check error:', error);
-    return new Response(JSON.stringify({ error: 'Failed to check VPN status' }), {
+    return new Response(JSON.stringify({ error: 'Internal server error' }), {
       status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+      headers: { 'Content-Type': 'application/json' },
+    })
   }
-});
+})
+
+async function detectVPN(ip: string): Promise<boolean> {
+  // Placeholder implementation
+  // In production, use services like ipqualityscore.com or maxmind.com
+  return false
+}

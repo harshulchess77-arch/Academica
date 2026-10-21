@@ -1,76 +1,55 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '../lib/supabase';
-import type { ParentStudentLink } from '../types';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { supabase } from '@/lib/supabase'
+import { authStore } from '@/store'
+import { Database } from '@/types'
 
-export const useParentLinks = () => {
-  return useQuery({
-    queryKey: ['parent-links'],
+type ParentStudentLink = Database['public']['Tables']['parent_student_links']['Row']
+
+export function useParentLink() {
+  const { profile } = authStore()
+  const queryClient = useQueryClient()
+
+  const { data: linkedStudents, isLoading } = useQuery({
+    queryKey: ['parentLinks', profile?.id],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
+      if (!profile?.id || profile.role !== 'parent') return []
       const { data, error } = await supabase
         .from('parent_student_links')
-        .select('*, student:profiles!parent_student_links_student_id_fkey(display_name, grade, xp_total, level, streak_count)')
-        .eq('parent_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data as ParentStudentLink[];
+        .select('*, profiles!parent_student_links_student_id_fkey(*)')
+        .eq('parent_id', profile.id)
+        .eq('status', 'approved')
+      if (error) throw error
+      return data as (ParentStudentLink & { profiles: any })[]
     },
-  });
-};
+    enabled: !!profile?.id && profile.role === 'parent',
+  })
 
-export const useCreateParentLink = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
+  const requestLink = useMutation({
     mutationFn: async (studentEmail: string) => {
-      const { data, error } = await supabase.rpc('create_parent_link_request', {
-        p_student_email: studentEmail,
-      });
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['parent-links'] });
-    },
-  });
-};
-
-export const useApproveParentLink = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (linkId: string) => {
-      const { data, error } = await supabase.rpc('approve_parent_link', {
-        p_link_id: linkId,
-      });
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['parent-links'] });
-    },
-  });
-};
-
-export const useRevokeParentLink = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (linkId: string) => {
-      const { error } = await supabase
+      if (!profile?.id) throw new Error('No user logged in')
+      // In production, this would trigger an email to the student
+      const { data, error } = await supabase
         .from('parent_student_links')
-        .update({ status: 'revoked' })
-        .eq('id', linkId);
-
-      if (error) throw error;
+        .insert({
+          parent_id: profile.id,
+          student_id: null, // Will be resolved by email
+          status: 'pending',
+          created_at: new Date().toISOString(),
+        })
+        .select()
+        .single()
+      if (error) throw error
+      return data as ParentStudentLink
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['parent-links'] });
+      queryClient.invalidateQueries({ queryKey: ['parentLinks'] })
     },
-  });
-};
+  })
+
+  return {
+    linkedStudents,
+    isLoading,
+    requestLink: requestLink.mutate,
+    isRequesting: requestLink.isPending,
+  }
+}

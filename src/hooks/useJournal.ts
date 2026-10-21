@@ -1,95 +1,83 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '../lib/supabase';
-import type { JournalEntry } from '../types';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { supabase } from '@/lib/supabase'
+import { authStore } from '@/store'
+import { Database } from '@/types'
 
-export const useJournal = () => {
-  return useQuery({
-    queryKey: ['journal'],
+type JournalEntry = Database['public']['Tables']['journal_entries']['Row']
+
+export function useJournal() {
+  const { profile } = authStore()
+  const queryClient = useQueryClient()
+
+  const { data: entries, isLoading } = useQuery({
+    queryKey: ['journalEntries', profile?.id],
     queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
+      if (!profile?.id) return []
       const { data, error } = await supabase
         .from('journal_entries')
         .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      return data as JournalEntry[];
+        .eq('user_id', profile.id)
+        .order('created_at', { ascending: false })
+      if (error) throw error
+      return data as JournalEntry[]
     },
-  });
-};
+    enabled: !!profile?.id,
+  })
 
-export const useCreateJournalEntry = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async (entry: {
-      title: string;
-      content: string;
-      mood: string | null;
-      tags: string[];
-      isPrivate: boolean;
-    }) => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
+  const createEntry = useMutation({
+    mutationFn: async (entry: Omit<JournalEntry, 'id' | 'user_id' | 'created_at'>) => {
+      if (!profile?.id) throw new Error('No user logged in')
       const { data, error } = await supabase
         .from('journal_entries')
         .insert({
-          user_id: user.id,
           ...entry,
+          user_id: profile.id,
+          created_at: new Date().toISOString(),
         })
         .select()
-        .single();
-
-      if (error) throw error;
-      return data as JournalEntry;
+        .single()
+      if (error) throw error
+      return data as JournalEntry
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['journal'] });
+      queryClient.invalidateQueries({ queryKey: ['journalEntries'] })
     },
-  });
-};
+  })
 
-export const useUpdateJournalEntry = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async ({
-      id,
-      updates,
-    }: {
-      id: string;
-      updates: Partial<JournalEntry>;
-    }) => {
+  const updateEntry = useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<JournalEntry> & { id: string }) => {
       const { data, error } = await supabase
         .from('journal_entries')
         .update(updates)
         .eq('id', id)
         .select()
-        .single();
-
-      if (error) throw error;
-      return data as JournalEntry;
+        .single()
+      if (error) throw error
+      return data as JournalEntry
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['journal'] });
+      queryClient.invalidateQueries({ queryKey: ['journalEntries'] })
     },
-  });
-};
+  })
 
-export const useDeleteJournalEntry = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
+  const deleteEntry = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from('journal_entries').delete().eq('id', id);
-      if (error) throw error;
+      const { error } = await supabase.from('journal_entries').delete().eq('id', id)
+      if (error) throw error
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['journal'] });
+      queryClient.invalidateQueries({ queryKey: ['journalEntries'] })
     },
-  });
-};
+  })
+
+  return {
+    entries,
+    isLoading,
+    createEntry: createEntry.mutate,
+    updateEntry: updateEntry.mutate,
+    deleteEntry: deleteEntry.mutate,
+    isCreating: createEntry.isPending,
+    isUpdating: updateEntry.isPending,
+    isDeleting: deleteEntry.isPending,
+  }
+}
